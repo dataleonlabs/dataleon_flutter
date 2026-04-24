@@ -5,11 +5,14 @@
   "packages": [
     {
       "name": "dataleon_flutter",
-      "version": "1.0.1",
+      "version": "2.0.0-beta",
       "dependencies": [
+        "camera",
         "flutter",
+        "http",
         "permission_handler",
-        "webview_flutter"
+        "url_launcher",
+        "yaml"
       ],
       "devDependencies": [
         "flutter_lints",
@@ -42,6 +45,29 @@
       ]
     },
     {
+      "name": "yaml",
+      "version": "3.1.3",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner"
+      ]
+    },
+    {
+      "name": "url_launcher",
+      "version": "6.3.2",
+      "dependencies": [
+        "flutter",
+        "url_launcher_android",
+        "url_launcher_ios",
+        "url_launcher_linux",
+        "url_launcher_macos",
+        "url_launcher_platform_interface",
+        "url_launcher_web",
+        "url_launcher_windows"
+      ]
+    },
+    {
       "name": "permission_handler",
       "version": "11.4.0",
       "dependencies": [
@@ -55,13 +81,25 @@
       ]
     },
     {
-      "name": "webview_flutter",
-      "version": "4.13.0",
+      "name": "http",
+      "version": "1.6.0",
       "dependencies": [
+        "async",
+        "http_parser",
+        "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "camera",
+      "version": "0.11.4",
+      "dependencies": [
+        "camera_android_camerax",
+        "camera_avfoundation",
+        "camera_platform_interface",
+        "camera_web",
         "flutter",
-        "webview_flutter_android",
-        "webview_flutter_platform_interface",
-        "webview_flutter_wkwebview"
+        "flutter_plugin_android_lifecycle"
       ]
     },
     {
@@ -90,7 +128,7 @@
     },
     {
       "name": "meta",
-      "version": "1.16.0",
+      "version": "1.17.0",
       "dependencies": []
     },
     {
@@ -141,7 +179,7 @@
     },
     {
       "name": "matcher",
-      "version": "0.12.17",
+      "version": "0.12.19",
       "dependencies": [
         "async",
         "meta",
@@ -152,7 +190,7 @@
     },
     {
       "name": "test_api",
-      "version": "0.7.6",
+      "version": "0.7.10",
       "dependencies": [
         "async",
         "boolean_selector",
@@ -163,6 +201,80 @@
         "stream_channel",
         "string_scanner",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "string_scanner",
+      "version": "1.4.1",
+      "dependencies": [
+        "source_span"
+      ]
+    },
+    {
+      "name": "source_span",
+      "version": "1.10.1",
+      "dependencies": [
+        "collection",
+        "path",
+        "term_glyph"
+      ]
+    },
+    {
+      "name": "url_launcher_windows",
+      "version": "3.1.5",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_web",
+      "version": "2.4.2",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "url_launcher_platform_interface",
+        "web"
+      ]
+    },
+    {
+      "name": "url_launcher_platform_interface",
+      "version": "2.3.2",
+      "dependencies": [
+        "flutter",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_macos",
+      "version": "3.2.5",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_linux",
+      "version": "3.2.2",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_ios",
+      "version": "6.4.1",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_android",
+      "version": "6.3.29",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
       ]
     },
     {
@@ -209,31 +321,74 @@
       ]
     },
     {
-      "name": "webview_flutter_wkwebview",
-      "version": "3.23.0",
+      "name": "web",
+      "version": "1.1.1",
+      "dependencies": []
+    },
+    {
+      "name": "http_parser",
+      "version": "4.1.2",
       "dependencies": [
-        "flutter",
-        "meta",
-        "path",
-        "webview_flutter_platform_interface"
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
       ]
     },
     {
-      "name": "webview_flutter_platform_interface",
-      "version": "2.14.0",
+      "name": "async",
+      "version": "2.13.0",
       "dependencies": [
-        "flutter",
-        "meta",
-        "plugin_platform_interface"
+        "collection",
+        "meta"
       ]
     },
     {
-      "name": "webview_flutter_android",
-      "version": "4.10.1",
+      "name": "flutter_plugin_android_lifecycle",
+      "version": "2.0.34",
       "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "camera_web",
+      "version": "0.3.5+3",
+      "dependencies": [
+        "camera_platform_interface",
+        "flutter",
+        "flutter_web_plugins",
+        "stream_transform",
+        "web"
+      ]
+    },
+    {
+      "name": "camera_platform_interface",
+      "version": "2.12.0",
+      "dependencies": [
+        "cross_file",
+        "flutter",
+        "plugin_platform_interface",
+        "stream_transform"
+      ]
+    },
+    {
+      "name": "camera_avfoundation",
+      "version": "0.9.23+2",
+      "dependencies": [
+        "camera_platform_interface",
+        "flutter",
+        "stream_transform"
+      ]
+    },
+    {
+      "name": "camera_android_camerax",
+      "version": "0.6.30",
+      "dependencies": [
+        "async",
+        "camera_platform_interface",
         "flutter",
         "meta",
-        "webview_flutter_platform_interface"
+        "stream_transform"
       ]
     },
     {
@@ -243,23 +398,15 @@
     },
     {
       "name": "material_color_utilities",
-      "version": "0.11.1",
+      "version": "0.13.0",
       "dependencies": [
         "collection"
       ]
     },
     {
       "name": "characters",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "dependencies": []
-    },
-    {
-      "name": "async",
-      "version": "2.13.0",
-      "dependencies": [
-        "collection",
-        "meta"
-      ]
     },
     {
       "name": "leak_tracker_testing",
@@ -287,27 +434,18 @@
       "dependencies": []
     },
     {
-      "name": "string_scanner",
-      "version": "1.4.1",
-      "dependencies": [
-        "source_span"
-      ]
-    },
-    {
-      "name": "source_span",
-      "version": "1.10.1",
-      "dependencies": [
-        "collection",
-        "path",
-        "term_glyph"
-      ]
-    },
-    {
       "name": "boolean_selector",
       "version": "2.1.2",
       "dependencies": [
         "source_span",
         "string_scanner"
+      ]
+    },
+    {
+      "name": "flutter_web_plugins",
+      "version": "0.0.0",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -318,15 +456,23 @@
       ]
     },
     {
-      "name": "web",
-      "version": "1.1.1",
+      "name": "typed_data",
+      "version": "1.4.0",
+      "dependencies": [
+        "collection"
+      ]
+    },
+    {
+      "name": "stream_transform",
+      "version": "2.1.1",
       "dependencies": []
     },
     {
-      "name": "flutter_web_plugins",
-      "version": "0.0.0",
+      "name": "cross_file",
+      "version": "0.3.5+2",
       "dependencies": [
-        "flutter"
+        "meta",
+        "web"
       ]
     },
     {
