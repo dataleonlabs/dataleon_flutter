@@ -42,10 +42,6 @@ class DocumentTypeStepPage extends StatelessWidget {
     final customDocuments =
         (dashboardConfiguration['kycCustomDocuments'] as List?)?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
-    final buttonColor = _parseColor(
-      dashboardConfiguration['buttonColor'] as String?,
-      const Color(0xFF222222),
-    );
 
     // Enrich custom documents with properties_validators + standard doc info
     final propertiesValidators =
@@ -256,15 +252,4 @@ class _DataleonScaffold extends StatelessWidget {
       ),
     );
   }
-}
-
-Color _parseColor(String? rawColor, Color fallback) {
-  if (rawColor == null || rawColor.isEmpty) {
-    return fallback;
-  }
-
-  final normalized = rawColor.replaceAll('#', '');
-  final hex = normalized.length == 6 ? 'FF$normalized' : normalized;
-  final value = int.tryParse(hex, radix: 16);
-  return value == null ? fallback : Color(value);
 }

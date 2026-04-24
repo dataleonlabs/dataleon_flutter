@@ -133,12 +133,6 @@ class _DocumentCountryStepPageState extends State<DocumentCountryStepPage> {
     return code;
   }
 
-  /// Normalize a country code to alpha-2 for flag rendering
-  String _toIso2(String code) {
-    final upper = code.toUpperCase();
-    return _iso3ToIso2[upper] ?? upper;
-  }
-
   @override
   void dispose() {
     _searchController.dispose();
