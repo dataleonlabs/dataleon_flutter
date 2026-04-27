@@ -28,7 +28,7 @@ Ajoutez la dépendance dans votre `pubspec.yaml` :
 
 ```yaml
 dependencies:
-  dataleon_flutter: ^2.0.0-beta
+  dataleon_flutter: ^2.0.0-beta-1
 ```
 
 Puis récupérez les dépendances :

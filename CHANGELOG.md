@@ -1,4 +1,4 @@
-## 2.0.0-beta
+## 2.0.0-beta-1
 
 - Refonte du SDK autour d'un flow natif piloté par configuration.
 - Ajout des nouveaux modules core, flow, i18n, models, screens, services et widgets.
