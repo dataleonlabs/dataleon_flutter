@@ -18,19 +18,31 @@ class WelcomeStepPage extends StatefulWidget {
 
 class _WelcomeStepPageState extends State<WelcomeStepPage> {
   static const _languages = <Map<String, String>>[
-    {'code': 'fr', 'label': 'Français', 'flag': '🇫🇷'},
-    {'code': 'en', 'label': 'English', 'flag': '🇬🇧'},
-    {'code': 'ar', 'label': 'العربية', 'flag': '🇸🇦'},
-    {'code': 'de', 'label': 'Deutsch', 'flag': '🇩🇪'},
-    {'code': 'it', 'label': 'Italiano', 'flag': '🇮🇹'},
-    {'code': 'pt', 'label': 'Português', 'flag': '🇵🇹'},
-    {'code': 'es', 'label': 'Español', 'flag': '🇪🇸'},
-    {'code': 'nl', 'label': 'Nederlands', 'flag': '🇳🇱'},
+    {'code': 'fr', 'label': 'Français', 'flag': '🇫🇷', 'short': 'FRA'},
+    {'code': 'en', 'label': 'English', 'flag': '🇬🇧', 'short': 'GB'},
+    {'code': 'ar', 'label': 'العربية', 'flag': '🇸🇦', 'short': 'SA'},
+    {'code': 'de', 'label': 'Deutsch', 'flag': '🇩🇪', 'short': 'DEU'},
+    {'code': 'it', 'label': 'Italiano', 'flag': '🇮🇹', 'short': 'ITA'},
+    {'code': 'pt', 'label': 'Português', 'flag': '🇵🇹', 'short': 'PRT'},
+    {'code': 'es', 'label': 'Español', 'flag': '🇪🇸', 'short': 'ESP'},
+    {'code': 'nl', 'label': 'Nederlands', 'flag': '🇳🇱', 'short': 'NLD'},
   ];
+
+  bool _isLanguagePageOpen = false;
+  String _languageSearch = '';
+  late String _pendingLanguageCode;
 
   String get _lang => widget.controller.languageCode;
   String _t(String key, {Map<String, String>? params}) =>
       DataleonLocalizations.t(_lang, key, params: params);
+  String _tr(String key, {String? fallback, Map<String, String>? params}) =>
+      DataleonLocalizations.t(_lang, key, fallback: fallback, params: params);
+
+  @override
+  void initState() {
+    super.initState();
+    _pendingLanguageCode = widget.controller.languageCode;
+  }
 
   Future<void> _openExternalLink(String? url) async {
     if (url == null || url.isEmpty) {
@@ -45,124 +57,224 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _pickLanguage() async {
-    final selectedCode = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.45,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 6),
-                Container(
-                  width: 28,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD1D5DB),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _t('common.language'),
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
+  void _openLanguagePage() {
+    setState(() {
+      _pendingLanguageCode = widget.controller.languageCode;
+      _languageSearch = '';
+      _isLanguagePageOpen = true;
+    });
+  }
+
+  void _closeLanguagePage() {
+    setState(() {
+      _isLanguagePageOpen = false;
+      _languageSearch = '';
+      _pendingLanguageCode = widget.controller.languageCode;
+    });
+  }
+
+  void _applyLanguageSelection() {
+    widget.controller.setLanguage(_pendingLanguageCode);
+    setState(() {
+      _isLanguagePageOpen = false;
+      _languageSearch = '';
+    });
+  }
+
+  List<Map<String, String>> _filteredLanguages() {
+    final query = _languageSearch.trim().toLowerCase();
+    if (query.isEmpty) {
+      return _languages;
+    }
+
+    return _languages.where((language) {
+      return (language['label'] ?? '').toLowerCase().contains(query) ||
+          (language['short'] ?? '').toLowerCase().contains(query) ||
+          (language['code'] ?? '').toLowerCase().contains(query);
+    }).toList();
+  }
+
+  Widget _buildLanguageSelectionPage(Color accentColor) {
+    final filteredLanguages = _filteredLanguages();
+
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: _closeLanguagePage,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        size: 22,
+                        color: Color(0xFF111827),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 2,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _tr(
+                        'common.selectLanguage',
+                        fallback: _t('common.language'),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                      ),
                     ),
-                    itemCount: _languages.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
-                    itemBuilder: (context, index) {
-                      final language = _languages[index];
-                      final isSelected = widget.controller.languageCode ==
-                          language['code'];
-                      return InkWell(
-                        onTap: () =>
-                            Navigator.of(context).pop(language['code']),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() {
+                            _languageSearch = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: _tr('common.search', fallback: 'Search'),
+                          hintStyle: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF9CA3AF),
                           ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                language['flag'] ?? '',
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  language['label']!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                width: 18,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? const Color(0xFF111827)
-                                        : const Color(0xFFD1D5DB),
-                                    width: isSelected ? 5 : 1.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          border: InputBorder.none,
                         ),
-                      );
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.78,
+                ),
+                itemCount: filteredLanguages.length,
+                itemBuilder: (context, index) {
+                  final language = filteredLanguages[index];
+                  final isSelected = _pendingLanguageCode == language['code'];
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _pendingLanguageCode = language['code']!;
+                      });
                     },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? accentColor.withValues(alpha: 0.08)
+                            : const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? accentColor : Colors.transparent,
+                          width: isSelected ? 2 : 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            language['flag'] ?? '',
+                            style: const TextStyle(fontSize: 42),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            language['short'] ?? '',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: isSelected
+                                  ? accentColor
+                                  : const Color(0xFF374151),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _applyLanguageSelection,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _t('common.continue'),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chevron_right_rounded, size: 18),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
-
-    if (selectedCode != null) {
-      widget.controller.setLanguage(selectedCode);
-    }
   }
 
   @override
@@ -170,8 +282,8 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
     final dashboardConfiguration = widget.controller.dashboardConfiguration;
     final applicationName =
         dashboardConfiguration['applicationName'] as String? ?? 'Dataleon';
-    final logoUrl = dashboardConfiguration['logo'] as String?
-        ?? dashboardConfiguration['logoURLApp'] as String?;
+    final logoUrl = dashboardConfiguration['logo'] as String? ??
+        dashboardConfiguration['logoURLApp'] as String?;
     final logoHeight =
         (dashboardConfiguration['logoHeight'] as num?)?.toDouble() ?? 30;
     final buttonColor = _parseColor(
@@ -182,12 +294,21 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
       dashboardConfiguration['buttonTextColor'] as String?,
       Colors.white,
     );
+    final accentColor = _parseColor(
+      dashboardConfiguration['buttonColor'] as String?,
+      const Color(0xFFE8505B),
+    );
     final cguUrl = dashboardConfiguration['configUrlCgu'] as String?;
-    final privacyUrl = dashboardConfiguration['configUrlPrivacyPolicy'] as String?;
+    final privacyUrl =
+        dashboardConfiguration['configUrlPrivacyPolicy'] as String?;
     final selectedLanguage = _languages.firstWhere(
       (language) => language['code'] == widget.controller.languageCode,
       orElse: () => _languages.first,
     );
+
+    if (_isLanguagePageOpen) {
+      return _buildLanguageSelectionPage(accentColor);
+    }
 
     return Container(
       color: Colors.white,
@@ -222,7 +343,8 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           TextSpan(
-                            text: _t('intro.preambule', params: {'appName': ''}),
+                            text:
+                                _t('intro.preambule', params: {'appName': ''}),
                           ),
                           const TextSpan(
                             text: '2 minutes',
@@ -305,7 +427,7 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InkWell(
-                    onTap: _pickLanguage,
+                    onTap: _openLanguagePage,
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       width: double.infinity,
@@ -314,12 +436,18 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFD1D5DB)),
+                        color: const Color(0xFFFAFAFA),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
+                          const Icon(
+                            Icons.public_rounded,
+                            color: Color(0xFF6B7280),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
                           Text(
                             selectedLanguage['flag'] ?? '',
                             style: const TextStyle(fontSize: 18),
@@ -331,7 +459,7 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.black,
+                                color: Color(0xFF374151),
                               ),
                             ),
                           ),

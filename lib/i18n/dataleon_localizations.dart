@@ -8,9 +8,13 @@ class DataleonLocalizations {
 
   /// Look up a translation by [lang] and dot-separated [key].
   /// Returns [fallback] (or the key itself) when not found.
-  static String t(String lang, String key, {String? fallback, Map<String, String>? params}) {
+  static String t(String lang, String key,
+      {String? fallback, Map<String, String>? params}) {
     final translations = _data[lang] ?? _data['fr']!;
-    final result = _resolve(translations, key) ?? _resolve(_data['fr']!, key) ?? fallback ?? key;
+    final result = _resolve(translations, key) ??
+        _resolve(_data['fr']!, key) ??
+        fallback ??
+        key;
     if (params == null || params.isEmpty) return result;
     var output = result;
     params.forEach((k, v) {
@@ -98,7 +102,8 @@ class DataleonLocalizations {
     'driver_license': 'documentListType.drivingLicense',
     'tax': 'documentListType.tax',
     'financial_statements': 'documentListType.financial_statements',
-    'certificate_of_incorporation': 'documentListType.certificate_of_incorporation',
+    'certificate_of_incorporation':
+        'documentListType.certificate_of_incorporation',
     'proof_of_source_funds': 'documentListType.proof_of_source_funds',
     'crime_record_extract': 'documentListType.crime_record_extract',
     'social_security_card': 'documentListType.social_security_card',
@@ -106,7 +111,8 @@ class DataleonLocalizations {
     'risks_policies': 'documentListType.risks_policies',
     'lcb_ft_lab_aml_policies': 'documentListType.lcb_ft_lab_aml_policies',
     'passport': 'documentListType.passport',
-    'certificate_of_good_standing': 'documentListType.certificate_of_good_standing',
+    'certificate_of_good_standing':
+        'documentListType.certificate_of_good_standing',
   };
 
   /// Enrich a custom document with properties_validators and standard doc info.
@@ -166,8 +172,7 @@ class DataleonLocalizations {
       },
       'dataSecurity':
           'Vos documents sont chiffrés et seront supprimés de notre système après le traitement.',
-      'termsNotice':
-          'En continuant, j\'accepte les ',
+      'termsNotice': 'En continuant, j\'accepte les ',
       'termsOfUse': 'conditions générales d\'utilisation',
       'and': ' et la ',
       'privacyPolicy': 'politique de confidentialité',
@@ -268,9 +273,9 @@ class DataleonLocalizations {
       'personalData': 'Vérification des informations personnelles',
       'personalDataError':
           'Nous n\'avons pas pu confirmer la correspondance entre votre nom '
-          'et celui figurant sur votre document d\'identité. '
-          'Veuillez réessayer en vous assurant que vous êtes bien '
-          'le propriétaire légitime du document.',
+              'et celui figurant sur votre document d\'identité. '
+              'Veuillez réessayer en vous assurant que vous êtes bien '
+              'le propriétaire légitime du document.',
       'blacklist': 'Vérification de conformité',
       'blacklistError': 'Le contrôle de conformité a échoué.',
       'faceSimilarity': 'Comparaison document/visage',
@@ -283,7 +288,7 @@ class DataleonLocalizations {
       'title': 'Merci !',
       'description':
           'Vos documents ont bien été envoyés et sont en cours de vérification. '
-          'Vous pouvez fermer cette page en toute sécurité.',
+              'Vous pouvez fermer cette page en toute sécurité.',
       'submitting': 'Nous finalisons la transmission de vos documents...',
       'redirect': 'Redirection automatique dans {{seconds}} s.',
       'retry': 'Réessayer',
@@ -292,10 +297,14 @@ class DataleonLocalizations {
     'common': {
       'continue': 'Continuer',
       'language': 'Langue',
+      'selectLanguage': 'Sélectionner la langue',
+      'search': 'Rechercher',
       'alreadyProcessedTitle': 'Vérification terminée',
-      'alreadyProcessedDesc': 'Vous pouvez fermer cette page en toute sécurité.',
+      'alreadyProcessedDesc':
+          'Vous pouvez fermer cette page en toute sécurité.',
       'errorTitle': 'Une erreur est survenue',
-      'errorDesc': 'Un problème est survenu lors du traitement de votre demande. Veuillez vérifier votre connexion et réessayer plus tard.',
+      'errorDesc':
+          'Un problème est survenu lors du traitement de votre demande. Veuillez vérifier votre connexion et réessayer plus tard.',
       'retry': 'Réessayer',
       'close': 'Fermer',
     },
@@ -418,8 +427,8 @@ class DataleonLocalizations {
       'personalData': 'Verifying personal information',
       'personalDataError':
           'We couldn\'t verify the match between your name and the one on your '
-          'identity document. Please try again, ensuring you are the legitimate '
-          'owner of the document.',
+              'identity document. Please try again, ensuring you are the legitimate '
+              'owner of the document.',
       'blacklist': 'Compliance check',
       'blacklistError': 'Compliance check failed.',
       'faceSimilarity': 'Face matching',
@@ -429,8 +438,7 @@ class DataleonLocalizations {
     },
     'outroStep': {
       'title': 'Thank you!',
-      'description':
-          'Your documents have been sent and are being verified. '
+      'description': 'Your documents have been sent and are being verified. '
           'You can safely close this page.',
       'submitting': 'We are finalizing the transmission of your documents...',
       'redirect': 'Automatic redirect in {{seconds}} s.',
@@ -440,10 +448,13 @@ class DataleonLocalizations {
     'common': {
       'continue': 'Continue',
       'language': 'Language',
+      'selectLanguage': 'Select language',
+      'search': 'Search',
       'alreadyProcessedTitle': 'Verification complete',
       'alreadyProcessedDesc': 'You can safely close this page.',
       'errorTitle': 'An error occurred',
-      'errorDesc': 'A problem occurred while processing your request. Please check your connection and try again later.',
+      'errorDesc':
+          'A problem occurred while processing your request. Please check your connection and try again later.',
       'retry': 'Retry',
       'close': 'Close',
     },
@@ -542,7 +553,7 @@ class DataleonLocalizations {
       'title': '¡Gracias!',
       'description':
           'Sus documentos han sido enviados y están siendo verificados. '
-          'Puede cerrar esta página de forma segura.',
+              'Puede cerrar esta página de forma segura.',
       'submitting': 'Estamos finalizando la transmisión de sus documentos...',
       'redirect': 'Redirección automática en {{seconds}} s.',
       'retry': 'Reintentar',
@@ -551,6 +562,8 @@ class DataleonLocalizations {
     'common': {
       'continue': 'Continuar',
       'language': 'Idioma',
+      'selectLanguage': 'Seleccionar idioma',
+      'search': 'Buscar',
     },
   };
 
@@ -620,7 +633,8 @@ class DataleonLocalizations {
     },
     'outroStep': {
       'title': 'شكراً!',
-      'description': 'تم إرسال وثائقك وهي قيد التحقق. يمكنك إغلاق هذه الصفحة بأمان.',
+      'description':
+          'تم إرسال وثائقك وهي قيد التحقق. يمكنك إغلاق هذه الصفحة بأمان.',
       'submitting': 'نقوم بإنهاء إرسال وثائقك...',
       'retry': 'إعادة المحاولة',
       'close': 'إغلاق',
@@ -628,6 +642,8 @@ class DataleonLocalizations {
     'common': {
       'continue': 'متابعة',
       'language': 'اللغة',
+      'selectLanguage': 'اختر اللغة',
+      'search': 'بحث',
     },
   };
 
@@ -710,6 +726,8 @@ class DataleonLocalizations {
     'common': {
       'continue': 'Continua',
       'language': 'Lingua',
+      'selectLanguage': 'Seleziona la lingua',
+      'search': 'Cerca',
     },
   };
 
@@ -792,6 +810,8 @@ class DataleonLocalizations {
     'common': {
       'continue': 'Continuar',
       'language': 'Idioma',
+      'selectLanguage': 'Selecionar idioma',
+      'search': 'Pesquisar',
     },
   };
 
@@ -846,7 +866,8 @@ class DataleonLocalizations {
     },
     'cameraCapture': {
       'passportLabel': 'Fotografieren Sie Ihren Reisepass',
-      'frontLabel': 'Platzieren Sie die Vorderseite Ihres {{document}} im Rahmen',
+      'frontLabel':
+          'Platzieren Sie die Vorderseite Ihres {{document}} im Rahmen',
       'backLabel': 'Platzieren Sie die Rückseite Ihres {{document}} im Rahmen',
       'selfieLabel': 'Machen Sie ein Selfie',
       'analyzing': 'Analyse läuft…',
@@ -874,6 +895,8 @@ class DataleonLocalizations {
     'common': {
       'continue': 'Weiter',
       'language': 'Sprache',
+      'selectLanguage': 'Sprache auswählen',
+      'search': 'Suchen',
     },
   };
 
@@ -928,10 +951,8 @@ class DataleonLocalizations {
     },
     'cameraCapture': {
       'passportLabel': 'Fotografeer uw paspoort',
-      'frontLabel':
-          'Plaats de voorkant van uw {{document}} in het kader',
-      'backLabel':
-          'Plaats de achterkant van uw {{document}} in het kader',
+      'frontLabel': 'Plaats de voorkant van uw {{document}} in het kader',
+      'backLabel': 'Plaats de achterkant van uw {{document}} in het kader',
       'selfieLabel': 'Neem een selfie',
       'analyzing': 'Bezig met analyseren…',
       'retake': 'Opnieuw',
@@ -951,14 +972,15 @@ class DataleonLocalizations {
       'title': 'Bedankt!',
       'description':
           'Uw documenten zijn verzonden en worden geverifieerd. U kunt deze pagina veilig sluiten.',
-      'submitting':
-          'We finaliseren de overdracht van uw documenten...',
+      'submitting': 'We finaliseren de overdracht van uw documenten...',
       'retry': 'Opnieuw proberen',
       'close': 'Sluiten',
     },
     'common': {
       'continue': 'Doorgaan',
       'language': 'Taal',
+      'selectLanguage': 'Selecteer taal',
+      'search': 'Zoeken',
     },
   };
 }

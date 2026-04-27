@@ -73,8 +73,6 @@ Le SDK attend une configuration `DataleonConfig` :
 
 - `sessionId` : identifiant de session Dataleon
 - `apiKey` : clé API Dataleon utilisée pour récupérer le token de session
-- `apiBaseUrl` : optionnel, pour pointer vers un environnement spécifique
-- `uploadBucket` : optionnel, si votre backend Dataleon l'exige
 
 Exemple :
 
