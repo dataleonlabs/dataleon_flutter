@@ -14,6 +14,7 @@
         "path_provider",
         "permission_handler",
         "url_launcher",
+        "web",
         "yaml"
       ],
       "devDependencies": [
@@ -45,6 +46,11 @@
         "test_api",
         "vector_math"
       ]
+    },
+    {
+      "name": "web",
+      "version": "1.1.1",
+      "dependencies": []
     },
     {
       "name": "path_provider",
@@ -398,11 +404,6 @@
         "flutter",
         "permission_handler_platform_interface"
       ]
-    },
-    {
-      "name": "web",
-      "version": "1.1.1",
-      "dependencies": []
     },
     {
       "name": "http_parser",
