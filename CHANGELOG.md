@@ -1,3 +1,8 @@
+## 2.0.1
+
+- Fix: mise à jour de l'URL API par défaut vers inference.eu-west-1.dataleon.ai.
+- Fix: appVersion corrigé à 2.0.0.
+
 ## 2.0.0
 
 - Version stable du SDK natif Flutter pour la vérification d'identité Dataleon.
