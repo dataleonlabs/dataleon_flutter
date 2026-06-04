@@ -37,16 +37,28 @@ class DataleonLocalizations {
   }
 
   /// Custom document display name based on language.
-  /// Follows React priority: t(doc.label) → displayNameFR/EN → name → t(doc.labelKey) → key
+  /// Follows React priority as closely as possible:
+  /// selected option/label translation → displayNameFR/EN → name
+  /// → translated labelKey / documentListType / workspaceSettings fallback → key.
   static String customDocLabel(String lang, Map<String, dynamic> doc) {
-    // 1. Try i18n translation of the label field
+    final key = doc['key'] as String? ?? '';
     final label = doc['label'] as String?;
-    if (label != null && label.isNotEmpty) {
-      final translated = t(lang, label);
-      if (translated != label) return translated;
+    final labelKey = doc['labelKey'] as String?;
+    final translationKeys = <String>[
+      if (label != null && label.isNotEmpty) label,
+      if (labelKey != null && labelKey.isNotEmpty) labelKey,
+      if (standardDocLabelKeys.containsKey(key)) standardDocLabelKeys[key]!,
+      if (key.isNotEmpty) 'documentListType.$key',
+      if (key.isNotEmpty) 'workspaceSettings.documentsPageName.$key',
+    ];
+
+    for (final translationKey in translationKeys) {
+      final translated = t(lang, translationKey);
+      if (translated != translationKey) {
+        return translated;
+      }
     }
 
-    // 2. Try displayNameFR / displayNameEN based on language
     if (lang == 'fr') {
       final fr = doc['displayNameFR'] as String?;
       if (fr != null && fr.trim().isNotEmpty) return fr.trim();
@@ -65,19 +77,17 @@ class DataleonLocalizations {
       if (en != null && en.trim().isNotEmpty) return en.trim();
     }
 
-    // 3. Try name
     final name = doc['name'] as String?;
     if (name != null && name.trim().isNotEmpty) return name.trim();
 
-    // 4. Try translating labelKey
-    final labelKey = doc['labelKey'] as String?;
-    if (labelKey != null && labelKey.isNotEmpty) {
-      final translated = t(lang, labelKey);
-      if (translated != labelKey) return translated;
+    for (final translationKey in translationKeys) {
+      final translated = t(lang, translationKey);
+      if (translated != translationKey) {
+        return translated;
+      }
     }
 
-    // 5. Last resort: key
-    return doc['key'] as String? ?? '';
+    return key;
   }
 
   /// Standard document type mapping: value → labelKey (for enrichment)
@@ -187,6 +197,12 @@ class DataleonLocalizations {
       'privacy': 'Votre appareil photo ne sera pas utilisé en arrière-plan.',
       'allowAccess': 'J\'autorise l\'accès',
       'continue': 'Continuer',
+      'errors': {
+        'denied': 'L\'accès à la caméra a été refusé. Veuillez l\'autoriser dans les paramètres.',
+        'notFound': 'Aucune caméra détectée sur cet appareil.',
+        'notReadable': 'La caméra est utilisée par une autre application.',
+        'unknown': 'Impossible d\'accéder à la caméra. Veuillez réessayer.',
+      },
     },
     'documentTypeStep': {
       'title': 'Sélectionnez le type de document à transmettre',
@@ -299,6 +315,8 @@ class DataleonLocalizations {
       'language': 'Langue',
       'selectLanguage': 'Sélectionner la langue',
       'search': 'Rechercher',
+      'progressLabel': 'de progression',
+      'stepLabel': 'Étape',
       'alreadyProcessedTitle': 'Vérification terminée',
       'alreadyProcessedDesc':
           'Vous pouvez fermer cette page en toute sécurité.',
@@ -341,6 +359,12 @@ class DataleonLocalizations {
       'privacy': 'Your camera will not be used in the background.',
       'allowAccess': 'I allow access',
       'continue': 'Continue',
+      'errors': {
+        'denied': 'Camera access was denied. Please enable it in settings.',
+        'notFound': 'No camera found on this device.',
+        'notReadable': 'The camera is in use by another application.',
+        'unknown': 'Unable to access the camera. Please try again.',
+      },
     },
     'documentTypeStep': {
       'title': 'Select the type of document to submit',
@@ -450,6 +474,8 @@ class DataleonLocalizations {
       'language': 'Language',
       'selectLanguage': 'Select language',
       'search': 'Search',
+      'progressLabel': 'complete',
+      'stepLabel': 'Step',
       'alreadyProcessedTitle': 'Verification complete',
       'alreadyProcessedDesc': 'You can safely close this page.',
       'errorTitle': 'An error occurred',
@@ -564,6 +590,8 @@ class DataleonLocalizations {
       'language': 'Idioma',
       'selectLanguage': 'Seleccionar idioma',
       'search': 'Buscar',
+      'progressLabel': 'de progreso',
+      'stepLabel': 'Paso',
     },
   };
 
@@ -644,6 +672,8 @@ class DataleonLocalizations {
       'language': 'اللغة',
       'selectLanguage': 'اختر اللغة',
       'search': 'بحث',
+      'progressLabel': 'مكتمل',
+      'stepLabel': 'خطوة',
     },
   };
 
@@ -728,6 +758,8 @@ class DataleonLocalizations {
       'language': 'Lingua',
       'selectLanguage': 'Seleziona la lingua',
       'search': 'Cerca',
+      'progressLabel': 'di avanzamento',
+      'stepLabel': 'Fase',
     },
   };
 
@@ -812,6 +844,8 @@ class DataleonLocalizations {
       'language': 'Idioma',
       'selectLanguage': 'Selecionar idioma',
       'search': 'Pesquisar',
+      'progressLabel': 'de progresso',
+      'stepLabel': 'Etapa',
     },
   };
 
@@ -897,6 +931,8 @@ class DataleonLocalizations {
       'language': 'Sprache',
       'selectLanguage': 'Sprache auswählen',
       'search': 'Suchen',
+      'progressLabel': 'Fortschritt',
+      'stepLabel': 'Schritt',
     },
   };
 
@@ -981,6 +1017,8 @@ class DataleonLocalizations {
       'language': 'Taal',
       'selectLanguage': 'Selecteer taal',
       'search': 'Zoeken',
+      'progressLabel': 'voortgang',
+      'stepLabel': 'Stap',
     },
   };
 }

@@ -28,7 +28,7 @@ Ajoutez la dépendance dans votre `pubspec.yaml` :
 
 ```yaml
 dependencies:
-  dataleon_flutter: ^2.0.0-beta-1
+  dataleon_flutter: ^2.0.0
 ```
 
 Puis récupérez les dépendances :
@@ -72,18 +72,18 @@ Dans `ios/Runner/Info.plist`, ajoutez au minimum :
 Le SDK attend une configuration `DataleonConfig` :
 
 - `sessionId` : identifiant de session Dataleon
-- `apiKey` : clé API Dataleon utilisée pour récupérer le token de session
+- `token` : JWT Dataleon déjà généré côté backend client
 
 Exemple :
 
 ```dart
 final config = DataleonConfig(
   sessionId: 'YOUR_SESSION_ID',
-  apiKey: 'YOUR_API_KEY',
+  token: 'YOUR_JWT_TOKEN',
 );
 ```
 
-En pratique, dans un projet existant, vous allez rarement hardcoder ces valeurs dans l'UI. Le plus propre est de les récupérer depuis votre backend, votre configuration distante ou votre couche de service applicative avant d'ouvrir le flow.
+En pratique, dans un projet existant, vous allez rarement hardcoder ces valeurs dans l'UI. Le plus propre est de récupérer le `sessionId` et le `token` depuis votre backend ou votre couche de service applicative avant d'ouvrir le flow. Le SDK ne génère plus de token côté frontend.
 
 ### 3. Ajouter un point d'entrée dans votre écran existant
 
@@ -105,7 +105,7 @@ class _KycEntryPageState extends State<KycEntryPage> {
 
   final DataleonConfig _config = DataleonConfig(
     sessionId: 'YOUR_SESSION_ID',
-    apiKey: 'YOUR_API_KEY',
+    token: 'YOUR_JWT_TOKEN',
   );
 
   void _handleResult(DataleonResult result) {

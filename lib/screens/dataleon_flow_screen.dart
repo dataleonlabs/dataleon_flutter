@@ -9,6 +9,8 @@ import '../widgets/dataleon_primary_button.dart';
 import '../widgets/dataleon_step_scaffold.dart';
 import 'camera_capture_step_page.dart';
 import 'camera_permission_step_page.dart';
+import 'chained_custom_document_step_page.dart';
+import 'chained_document_intro_step_page.dart';
 import 'dataleon_loading_page.dart';
 import 'document_country_step_page.dart';
 import 'document_type_step_page.dart';
@@ -52,8 +54,8 @@ class _DataleonFlowViewState extends State<DataleonFlowView> {
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ??
-        DataleonFlowController(config: widget.config);
+    _controller =
+        widget.controller ?? DataleonFlowController(config: widget.config);
     _ownsController = widget.controller == null;
     _controller.addListener(_handleControllerChanged);
     _controller.start();
@@ -86,7 +88,31 @@ class _DataleonFlowViewState extends State<DataleonFlowView> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildStep(context);
+    final fontFamily = _controller.customFontFamily;
+    final child = _buildStep(context);
+
+    if (fontFamily == null || fontFamily.isEmpty) {
+      return child;
+    }
+
+    final baseTheme = Theme.of(context);
+
+    return Theme(
+      data: baseTheme.copyWith(
+        textTheme: baseTheme.textTheme.apply(
+          fontFamily: fontFamily,
+        ),
+        primaryTextTheme: baseTheme.primaryTextTheme.apply(
+          fontFamily: fontFamily,
+        ),
+      ),
+      child: DefaultTextStyle.merge(
+        style: TextStyle(
+          fontFamily: fontFamily,
+        ),
+        child: child,
+      ),
+    );
   }
 
   Widget _buildStep(BuildContext context) {
@@ -113,7 +139,25 @@ class _DataleonFlowViewState extends State<DataleonFlowView> {
       case DataleonFlowStep.documentCountry:
         return DocumentCountryStepPage(controller: _controller);
       case DataleonFlowStep.document:
-        return CameraCaptureStepPage(controller: _controller);
+        return CameraCaptureStepPage(
+          key: ValueKey<String>(
+            '${_controller.currentDocumentKey ?? 'document'}:${_controller.documentCountry ?? ''}',
+          ),
+          controller: _controller,
+        );
+      case DataleonFlowStep.chainedDocumentIntro:
+        return ChainedDocumentIntroStepPage(
+          key: ValueKey(_controller.activeChainedDocument?['key']),
+          controller: _controller,
+        );
+      case DataleonFlowStep.chainedCustomDocument:
+        // Key on the active document forces State recreation when the document
+        // changes, so _syncWithCurrentDocument() runs and _showOptionPicker is
+        // reset correctly (proposed options shown before upload/camera).
+        return ChainedCustomDocumentStepPage(
+          key: ValueKey(_controller.activeChainedDocument?['key']),
+          controller: _controller,
+        );
       case DataleonFlowStep.selfie:
         return _defaultStep(
           title: 'Selfie',

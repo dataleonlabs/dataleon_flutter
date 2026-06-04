@@ -7,11 +7,16 @@
 
 import 'dart:io'; // flutter_ignore: dart_io_import.
 import 'package:camera_android_camerax/camera_android_camerax.dart' as camera_android_camerax;
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:url_launcher_android/url_launcher_android.dart' as url_launcher_android;
 import 'package:camera_avfoundation/camera_avfoundation.dart' as camera_avfoundation;
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:url_launcher_ios/url_launcher_ios.dart' as url_launcher_ios;
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:url_launcher_linux/url_launcher_linux.dart' as url_launcher_linux;
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:url_launcher_macos/url_launcher_macos.dart' as url_launcher_macos;
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:url_launcher_windows/url_launcher_windows.dart' as url_launcher_windows;
 
 @pragma('vm:entry-point')
@@ -25,6 +30,15 @@ class _PluginRegistrant {
       } catch (err) {
         print(
           '`camera_android_camerax` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
+        file_picker.FilePickerIO.registerWith();
+      } catch (err) {
+        print(
+          '`file_picker` threw an error: $err. '
           'The app may not function as expected until you remove this plugin from pubspec.yaml'
         );
       }
@@ -49,6 +63,15 @@ class _PluginRegistrant {
       }
 
       try {
+        file_picker.FilePickerIO.registerWith();
+      } catch (err) {
+        print(
+          '`file_picker` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
         url_launcher_ios.UrlLauncherIOS.registerWith();
       } catch (err) {
         print(
@@ -58,6 +81,15 @@ class _PluginRegistrant {
       }
 
     } else if (Platform.isLinux) {
+      try {
+        file_picker.FilePickerLinux.registerWith();
+      } catch (err) {
+        print(
+          '`file_picker` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
       try {
         url_launcher_linux.UrlLauncherLinux.registerWith();
       } catch (err) {
@@ -69,6 +101,15 @@ class _PluginRegistrant {
 
     } else if (Platform.isMacOS) {
       try {
+        file_picker.FilePickerMacOS.registerWith();
+      } catch (err) {
+        print(
+          '`file_picker` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
         url_launcher_macos.UrlLauncherMacOS.registerWith();
       } catch (err) {
         print(
@@ -78,6 +119,15 @@ class _PluginRegistrant {
       }
 
     } else if (Platform.isWindows) {
+      try {
+        file_picker.FilePickerWindows.registerWith();
+      } catch (err) {
+        print(
+          '`file_picker` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
       try {
         url_launcher_windows.UrlLauncherWindows.registerWith();
       } catch (err) {

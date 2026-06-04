@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:dataleon_flutter/dataleon_flutter.dart';
 
@@ -33,16 +34,25 @@ class ClientHomePage extends StatefulWidget {
 
 class _ClientHomePageState extends State<ClientHomePage> {
   String _lastResult = 'No verification started yet';
+  static const String _accountTenant = '7aae1d15-01cf-4296-b1fa-92fb93e22850';
 
-  // This is what the client provides — their session ID and API key.
-  static final _config = DataleonConfig(
-    sessionId: 'YOUR_SESSION_ID',
-    apiKey: 'YOUR_API_KEY',
+  // Read ?lang= from the URL on web (e.g. https://…/?lang=en)
+  static String? get _initialLanguage =>
+      kIsWeb ? Uri.base.queryParameters['lang'] : null;
+
+  // This is what the client provides — their session ID, JWT token,
+  // and optionally their account tenant.
+  DataleonConfig get _config => DataleonConfig(
+    sessionId: 'b32fe552-02e6-4faa-af2b-aebf8337e589',
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhYjBkMDBiLTdlOWEtNDllZS1hM2NjLWI0ZTBmMThlYTQyZCIsInJlcXVlc3RJZCI6IjVhYjBkMDBiLTdlOWEtNDllZS1hM2NjLWI0ZTBmMThlYTQyZCIsImlhdCI6MTc3OTg3ODI4MiwiZXhwIjoxNzc5ODg1NDgyfQ.QicGNV8-e1y1pPf3w0cF1bxgWPizwlrUCOcmoSc-Sm4',
+    accountTenant: _accountTenant,
+    initialLanguage: _initialLanguage,
   );
 
   void _handleResult(DataleonResult result) {
     setState(() {
-      _lastResult = 'Status: ${result.status.value}'
+      _lastResult =
+          'Status: ${result.status.value}'
           '${result.error != null ? '\nError: ${result.error}' : ''}';
     });
 
@@ -88,10 +98,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Client App'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('My Client App'), centerTitle: true),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -104,13 +111,17 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(Icons.verified_user,
-                          size: 48, color: theme.colorScheme.primary),
+                      Icon(
+                        Icons.verified_user,
+                        size: 48,
+                        color: theme.colorScheme.primary,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'Dataleon SDK Test',
-                        style: theme.textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -160,10 +171,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Last result',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                          )),
+                      Text(
+                        'Last result',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Text(_lastResult, style: theme.textTheme.bodyMedium),
                     ],

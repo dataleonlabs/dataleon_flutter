@@ -77,7 +77,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     final custom = _ctrl.selectedCustomDocument;
     final activation =
         (_dash['kycDocumentTypeActivation'] as Map<String, dynamic>?) ??
-        const <String, dynamic>{};
+            const <String, dynamic>{};
     final selfie = activation['selfie'] == true;
     if (docType == 'passport') {
       return selfie ? const ['front', 'face'] : const ['front'];
@@ -91,9 +91,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       }
       return selfie ? const ['front', 'face'] : const ['front'];
     }
-    return selfie
-        ? const ['front', 'back', 'face']
-        : const ['front', 'back'];
+    return selfie ? const ['front', 'back', 'face'] : const ['front', 'back'];
   }
 
   String get _phase => _phases[_phaseIndex];
@@ -104,13 +102,65 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       _parseColor(_dash['buttonColor'] as String?, const Color(0xFF111827));
   Color get _btnTextColor =>
       _parseColor(_dash['buttonTextColor'] as String?, Colors.white);
-
   String get _docName {
     final docType = _ctrl.documentType ?? 'id';
     final custom = _ctrl.selectedCustomDocument;
-    if (custom != null) {
-      return DataleonLocalizations.customDocLabel(_lang, custom);
+    final chainedOptionLabel = _ctrl.selectedChainedDocumentOption?['label'];
+    final customDocKey = (custom?['key'] as String?) ?? docType;
+    final customLabelKey = custom?['labelKey'] as String?;
+    final customTranslationKey =
+        'documentListType.${customLabelKey ?? customDocKey}';
+    final validatorMeta =
+        (_ctrl.requestConfig?['properties_validators'] as List?)
+            ?.whereType<Map>()
+            .cast<Map<dynamic, dynamic>>()
+            .firstWhere(
+              (item) => item['key'] == customDocKey,
+              orElse: () => const <dynamic, dynamic>{},
+            )
+            .cast<String, dynamic>();
+
+    if (chainedOptionLabel is String && chainedOptionLabel.trim().isNotEmpty) {
+      return chainedOptionLabel.trim();
     }
+
+    if (custom != null) {
+      final translatedCustomLabel = _t(customTranslationKey);
+      if (translatedCustomLabel != customTranslationKey) {
+        return translatedCustomLabel;
+      }
+
+      final source = validatorMeta == null || validatorMeta.isEmpty
+          ? custom
+          : validatorMeta;
+
+      if (_lang == 'fr') {
+        final fr = source['displayNameFR'] as String?;
+        if (fr != null && fr.trim().isNotEmpty) {
+          return fr.trim();
+        }
+      }
+
+      if (_lang == 'en') {
+        final en = source['displayNameEN'] as String?;
+        if (en != null && en.trim().isNotEmpty) {
+          return en.trim();
+        }
+      }
+
+      final name = source['name'] as String?;
+      if (name != null && name.trim().isNotEmpty) {
+        return name.trim();
+      }
+
+      final key = source['key'] as String?;
+      if (key != null && key.isNotEmpty) {
+        return key;
+      }
+
+      return customDocKey;
+    }
+
     return _t('cameraCapture.docName_$docType',
         fallback: _t('documentTypeStep.documents.$docType', fallback: docType));
   }
@@ -129,6 +179,24 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         return 'Capture';
     }
   }
+
+  bool get _isCardDocument {
+    final rawValue = _ctrl.selectedCustomDocument?['isCardDocument'];
+    if (rawValue is bool) {
+      return rawValue;
+    }
+    if (rawValue is num) {
+      return rawValue == 1;
+    }
+    if (rawValue is String) {
+      final normalizedValue = rawValue.trim().toLowerCase();
+      return const ['true', '1', 'yes', 'on'].contains(normalizedValue);
+    }
+    return false;
+  }
+
+  bool get _enabledDocumentCapture =>
+      _ctrl.selectedCustomDocument != null && _isCardDocument;
 
   // ---- camera ----
 
@@ -235,6 +303,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         'step': _phase,
         'document_type': _ctrl.documentType ?? 'id',
         'document_country': (_ctrl.documentCountry ?? '').toUpperCase(),
+        'enabled_document_capture': _enabledDocumentCapture,
         'language': _ctrl.languageCode,
         'session_id': _sessionId,
         'screen_w': pw.round(),
@@ -245,8 +314,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         'overlay_h': overlayH,
       };
 
-      final data =
-          await _ctrl.apiService.sendCaptureFrame(payload: payload);
+      final data = await _ctrl.apiService.sendCaptureFrame(payload: payload);
       if (!mounted) return;
 
       final status = data['status'] as String?;
@@ -300,8 +368,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     });
 
     try {
-      final filename =
-          '${DateTime.now().millisecondsSinceEpoch}-$_phase.jpg';
+      final filename = '${DateTime.now().millisecondsSinceEpoch}-$_phase.jpg';
 
       // 1. Upload to S3
       setState(() {
@@ -350,8 +417,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         final v = validations[i];
         setState(() {
           _confirmMessage = v.label;
-          _confirmPercent =
-              0.5 + ((i + 1) / (validations.length + 1)) * 0.5;
+          _confirmPercent = 0.5 + ((i + 1) / (validations.length + 1)) * 0.5;
         });
 
         final vPayload = _buildValidationPayload(
@@ -398,7 +464,12 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       if (!mounted) return;
 
       if (_isLastPhase) {
-        _ctrl.goToStep(DataleonFlowStep.success);
+        final startedChainedDocument = _ctrl.completeCurrentDocumentAndContinue(
+          completedSelectedOptionId: _ctrl.selectedChainedDocumentOption?['id']?.toString(),
+        );
+        if (!startedChainedDocument) {
+          _ctrl.goToStep(DataleonFlowStep.success);
+        }
         return;
       }
 
@@ -448,7 +519,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
 
   void _handleClose() {
     _stopLoop();
-    _ctrl.previousStep();
+    _ctrl.handleCaptureClose();
   }
 
   // ---- API helpers ----
@@ -494,6 +565,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       'form_document_type': _ctrl.documentType ?? '',
       'form_document_country': _ctrl.documentCountry ?? '',
       'session_id': _sessionId,
+      'enable_card_detect': _isCardDocument.toString(),
       'request_type': 'webview',
     };
     final requestId = request['id'];
@@ -554,16 +626,12 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
   }
 
   bool _hasValidationFailure(Map<String, dynamic> r) {
-    if (r['success'] == false ||
-        r['status'] == false ||
-        r['error'] != null) {
+    if (r['success'] == false || r['status'] == false || r['error'] != null) {
       return true;
     }
     final d = r['data'];
     if (d is Map<String, dynamic> &&
-        (d['success'] == false ||
-            d['status'] == false ||
-            d['error'] != null)) {
+        (d['success'] == false || d['status'] == false || d['error'] != null)) {
       return true;
     }
     return false;
@@ -616,8 +684,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
 
   Widget _buildLiveCamera() {
     final overlayOk = _apiStatus == 'ok' || _greenDelay;
-    final guideColor =
-        overlayOk ? const Color(0xFF22C55E) : const Color(0xFF3B82F6);
+    final guideColor = overlayOk ? const Color(0xFF22C55E) : const Color(0xFF9CA3AF);
     final mq = MediaQuery.of(context);
 
     // Guide dimensions
@@ -627,8 +694,8 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       // Capsule like React selfieRect
       final bool isLandscape = mq.size.width > mq.size.height;
       guideW = isLandscape ? mq.size.height * 0.48 : mq.size.width * 0.65;
-      guideH = isLandscape ? mq.size.height * 0.72 : mq.size.height * 0.6;
-      guideOy = (mq.size.height - guideH) / 2;
+      guideH = isLandscape ? mq.size.height * 0.65 : mq.size.height * 0.52;
+      guideOy = (mq.size.height - guideH) / 2 + mq.size.height * 0.04;
     } else {
       guideW = mq.size.width * 0.85;
       guideH = mq.size.height * 0.28;
@@ -716,8 +783,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
             right: 12,
             child: GestureDetector(
               onTap: _handleClose,
-              child:
-                  const Icon(Icons.close, color: Colors.white, size: 26),
+              child: const Icon(Icons.close, color: Colors.white, size: 26),
             ),
           ),
 
@@ -763,8 +829,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(_phases.length, (i) {
                 final done = i < _phaseIndex ||
-                    (i == _phaseIndex &&
-                        (_apiStatus == 'ok' || _greenDelay));
+                    (i == _phaseIndex && (_apiStatus == 'ok' || _greenDelay));
                 final active = i == _phaseIndex && !done;
                 return Container(
                   width: 32,
@@ -846,8 +911,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
                         children: [
-                          Icon(item.icon,
-                              color: Colors.white70, size: 20),
+                          Icon(item.icon, color: Colors.white70, size: 20),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -863,8 +927,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  if (_confirmStatus == 'error' &&
-                      _confirmError != null)
+                  if (_confirmStatus == 'error' && _confirmError != null)
                     _buildErrorSheet()
                   else if (_confirmStatus != null)
                     _buildProgressBar()
@@ -923,16 +986,15 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
 
   Widget _buildProgressBar() {
     final isSuccess = _confirmStatus == 'success';
-    final barColor =
-        isSuccess ? const Color(0xFF22C55E) : Colors.white;
+    final barColor = isSuccess ? const Color(0xFF22C55E) : Colors.white;
+    const iconColor = Color(0xFF22C55E);
 
     return Column(
       children: [
         Text(
           '${_confirmMessage ?? ''}${_confirmStatus == 'progress' ? '...' : ''}',
           textAlign: TextAlign.center,
-          style:
-              const TextStyle(color: Colors.white70, fontSize: 14),
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 10),
         Row(
@@ -944,18 +1006,13 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
                   value: _confirmPercent ?? 0,
                   minHeight: 6,
                   backgroundColor: Colors.white24,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(barColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(barColor),
                 ),
               ),
             ),
             if (isSuccess) ...[
               const SizedBox(width: 8),
-              const Icon(
-                Icons.check_circle,
-                color: Color(0xFF22C55E),
-                size: 18,
-              ),
+              Icon(Icons.check_circle, color: iconColor, size: 18),
             ],
           ],
         ),
@@ -1133,7 +1190,8 @@ class _GuideOverlayPainter extends CustomPainter {
     cutoutPath.addRRect(RRect.fromRectAndRadius(guideRect, cutoutRadius));
 
     // Dimmed area = full screen minus cutout
-    final dimPath = Path.combine(PathOperation.difference, fullPath, cutoutPath);
+    final dimPath =
+        Path.combine(PathOperation.difference, fullPath, cutoutPath);
     canvas.drawPath(
       dimPath,
       Paint()..color = const Color(0x80000000), // 50% black

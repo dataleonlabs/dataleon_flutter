@@ -7,6 +7,8 @@ enum DataleonFlowStep {
   documentType,
   documentCountry,
   document,
+  chainedDocumentIntro,
+  chainedCustomDocument,
   selfie,
   review,
   submitting,

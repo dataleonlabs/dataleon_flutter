@@ -31,9 +31,9 @@ L'URL de base par défaut utilise HTTPS (`https://inference.eu-west-1.dataleon.a
 ### ✅ A.8.3 — Authentification par token JWT (Bearer)
 
 Le SDK utilise un flux d'authentification sécurisé :
-1. L'API key est utilisée **une seule fois** pour obtenir un JWT via `GET /token/{xxxxxx}`
-2. Tous les appels suivants utilisent `Authorization: Bearer <JWT>`
-3. Le JWT est stocké uniquement en mémoire (pas de persistance locale)
+1. Le JWT est fourni directement au SDK par l'application cliente
+2. Tous les appels utilisent `Authorization: Bearer <JWT>`
+3. Le JWT est stocké uniquement en mémoire applicative (pas de persistance locale)
 
 **Fichier** : `lib/services/dataleon_api_service.dart`
 
@@ -51,7 +51,7 @@ Le SDK utilise un flux d'authentification sécurisé :
 
 ### ✅ A.8.10 — Aucun stockage local de données sensibles
 
-Aucune donnée sensible (photos, tokens, API keys) n'est persistée localement. Pas de SQLite, SharedPreferences, fichiers temporaires ou cache disque. Toutes les données sensibles restent en mémoire et disparaissent à la fermeture de l'application.
+Aucune donnée sensible (photos, tokens) n'est persistée localement. Pas de SQLite, SharedPreferences, fichiers temporaires ou cache disque. Toutes les données sensibles restent en mémoire et disparaissent à la fermeture de l'application.
 
 ---
 
@@ -65,7 +65,7 @@ Les exceptions API (`DataleonApiException`) ne contiennent que le code HTTP et u
 
 ### ✅ A.8.9 — Pas de log de credentials
 
-Aucun `print()` ou `debugPrint()` ne log les tokens JWT, API keys, ou données utilisateur dans le flow natif. Les credentials ne sont jamais exposées dans les logs.
+Aucun `print()` ou `debugPrint()` ne log les tokens JWT ou données utilisateur dans le flow natif. Les credentials ne sont jamais exposées dans les logs.
 
 **Fichier** : Tout le SDK (flow natif)
 
@@ -148,7 +148,7 @@ Les erreurs sont capturées dans le contrôleur et transmises au résultat SDK s
 
 ### ✅ A.8.9 — Exemple et documentation sans credentials réels
 
-L'exemple public et la documentation n'exposent plus de `sessionId` ni d'`apiKey` réels. Les valeurs sont désormais remplacées par des placeholders explicites, ce qui supprime le risque d'exposition accidentelle de credentials dans le dépôt.
+L'exemple public et la documentation n'exposent plus de `sessionId` ni de `token` réels. Les valeurs sont désormais remplacées par des placeholders explicites, ce qui supprime le risque d'exposition accidentelle de credentials dans le dépôt.
 
 **Fichier** : `example/lib/main.dart`, `README.md`
 
@@ -174,12 +174,12 @@ assert(apiBaseUrl == null || apiBaseUrl!.startsWith('https://'),
 
 **Fichier** : `lib/core/dataleon_config.dart`
 
-L'API key et le JWT token restent en mémoire aussi longtemps que l'objet `DataleonConfig` existe. Même après la fermeture du SDK, si l'objet config est conservé par l'application hôte, les credentials restent accessibles.
+Le JWT token reste en mémoire aussi longtemps que l'objet `DataleonConfig` existe. Même après la fermeture du SDK, si l'objet config est conservé par l'application hôte, le credential reste accessible.
 
 **Recommandation** : Ajouter une méthode `dispose()` :
 ```dart
 void dispose() {
-  _sessionToken = null;
+  // reset token reference here if the host app keeps the config alive
 }
 ```
 
