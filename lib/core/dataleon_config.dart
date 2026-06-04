@@ -13,7 +13,7 @@ class DataleonConfig {
     this.accountTenant,
     this.apiBaseUrl,
     this.uploadBucket,
-    this.appVersion = '2.0.0-beta',
+    this.appVersion = '2.0.0',
     this.initialLanguage,
   });
 
@@ -31,6 +31,6 @@ class DataleonConfig {
     if (apiBaseUrl != null && apiBaseUrl!.isNotEmpty) {
       return apiBaseUrl!;
     }
-    return 'https://iron-local.dataleon.ai';
+    return 'https://inference.eu-west-1.dataleon.ai';
   }
 }
