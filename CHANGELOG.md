@@ -1,3 +1,14 @@
+## 2.0.0
+
+- Version stable du SDK natif Flutter pour la vérification d'identité Dataleon.
+- Support complet du flow KYC : document, selfie, documents chaînés, upload.
+- Internationalisation (fr, en, ar, de, it, pt, es, nl) avec conversion automatique des codes ISO3.
+- Chargement dynamique du contenu depuis `/contents-configs` (titres, descriptions, markdown).
+- Support de `uniformPrincipalColor`, `termsAndConditionsDisabled`, `intro_terms`.
+- Bordure de recherche et icône upload adaptées à la couleur du client.
+- Corrections : guide caméra toujours vert sur succès, mots-clés toujours verts, helpText card.
+- Amélioration de la page outro : priorité au contenu API sur le YAML de configuration.
+
 ## 2.0.0-beta-1
 
 - Refonte du SDK autour d'un flow natif piloté par configuration.

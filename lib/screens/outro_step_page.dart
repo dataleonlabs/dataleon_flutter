@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../flow/dataleon_flow_controller.dart';
 import '../i18n/dataleon_localizations.dart';
+import '../widgets/dataleon_step_header.dart';
 
 class OutroStepPage extends StatefulWidget {
   const OutroStepPage({
@@ -82,17 +83,35 @@ class _OutroStepPageState extends State<OutroStepPage> {
     final names = <String>[];
     final forceTotalDocument = <String>[];
 
-    for (final phase in const ['front', 'back', 'face']) {
-      final file = _controller.uploadedFiles[phase];
-      if (file == null) {
-        continue;
+    final filesByDocument = _controller.uploadedFilesByDocument;
+    if (filesByDocument.isNotEmpty) {
+      for (final documentFiles in filesByDocument.values) {
+        for (final phase in const ['front', 'back', 'face']) {
+          final file = documentFiles[phase];
+          if (file == null) {
+            continue;
+          }
+          final originalName = file['name'] ?? '';
+          final url = file['url'] ?? '';
+          final documentName = _documentNameForPhase(phase);
+          urls.add('$url?filename=$originalName');
+          names.add(documentName);
+          forceTotalDocument.add(documentName);
+        }
       }
-      final originalName = file['name'] ?? '';
-      final url = file['url'] ?? '';
-      final documentName = _documentNameForPhase(phase);
-      urls.add('$url?filename=$originalName');
-      names.add(documentName);
-      forceTotalDocument.add(documentName);
+    } else {
+      for (final phase in const ['front', 'back', 'face']) {
+        final file = _controller.uploadedFiles[phase];
+        if (file == null) {
+          continue;
+        }
+        final originalName = file['name'] ?? '';
+        final url = file['url'] ?? '';
+        final documentName = _documentNameForPhase(phase);
+        urls.add('$url?filename=$originalName');
+        names.add(documentName);
+        forceTotalDocument.add(documentName);
+      }
     }
 
     final payload = <String, dynamic>{
@@ -132,11 +151,17 @@ class _OutroStepPageState extends State<OutroStepPage> {
   }
 
   void _startRedirectIfNeeded() {
-    final redirectEnabled = _dashboardConfiguration['enableRedirection'] == true;
+    final redirectEnabled =
+        _dashboardConfiguration['enableRedirection'] == true;
     final redirectUrl = _dashboardConfiguration['configUrlRedirect'] as String?;
     final delay = (_dashboardConfiguration['redirectionTime'] as num?)?.toInt();
 
     if (!redirectEnabled || redirectUrl == null || redirectUrl.isEmpty) {
+      return;
+    }
+
+    final finalRedirectUri = _buildRedirectUri(redirectUrl);
+    if (finalRedirectUri == null) {
       return;
     }
 
@@ -155,7 +180,7 @@ class _OutroStepPageState extends State<OutroStepPage> {
 
       if (remaining <= 1) {
         timer.cancel();
-        await launchUrl(Uri.parse(redirectUrl), mode: LaunchMode.externalApplication);
+        await launchUrl(finalRedirectUri, mode: LaunchMode.externalApplication);
         return;
       }
 
@@ -167,17 +192,68 @@ class _OutroStepPageState extends State<OutroStepPage> {
     });
   }
 
+  Uri? _buildRedirectUri(String redirectUrl) {
+    final parsedUri = Uri.tryParse(redirectUrl);
+    if (parsedUri == null) {
+      return null;
+    }
+
+    final queryParameters = <String, String>{
+      ...parsedUri.queryParameters,
+    };
+
+    final sessionId = _controller.config.sessionId;
+    if (sessionId.isNotEmpty) {
+      queryParameters['id'] = sessionId;
+    }
+
+    final sourceId = _controller.requestResult['source_id'];
+    if (sourceId != null && '$sourceId'.isNotEmpty) {
+      queryParameters['source_id'] = '$sourceId';
+    }
+
+    return parsedUri.replace(queryParameters: queryParameters);
+  }
+
+  String _wcString(String key) {
+    final val = _controller.webviewConfig[key];
+    return val is String ? val.trim() : '';
+  }
+
   String get _outroTitle {
+    final hasChained = _controller.hasCompletedChainedCustomDocuments;
+    if (hasChained) {
+      if (_wcString('chainedDocument_outro_title').isNotEmpty) {
+        return _wcString('chainedDocument_outro_title');
+      }
+      if (_wcString('outro_title').isNotEmpty) return _wcString('outro_title');
+      return _t('outroStep.title');
+    }
+    // contentTitle (workspaceContent) > outro_title (config) > fallback
     final wc = _controller.webviewConfig;
     final outro = wc['outro'];
     if (outro is Map) {
       final t = outro['title'];
       if (t is String && t.isNotEmpty) return t;
     }
-    return 'Merci !';
+    if (_wcString('outro_title').isNotEmpty) return _wcString('outro_title');
+    return _t('outroStep.title');
   }
 
   String get _outroDescription {
+    final hasChained = _controller.hasCompletedChainedCustomDocuments;
+    if (hasChained) {
+      if (_wcString('chainedDocument_outro_description').isNotEmpty) {
+        return _wcString('chainedDocument_outro_description');
+      }
+      if (_wcString('outro_description').isNotEmpty) {
+        return _wcString('outro_description');
+      }
+      return _t('outroStep.description');
+    }
+    if (_wcString('outro_description').isNotEmpty) {
+      return _wcString('outro_description');
+    }
     final wc = _controller.webviewConfig;
     final outro = wc['outro'];
     if (outro is Map) {
@@ -189,64 +265,54 @@ class _OutroStepPageState extends State<OutroStepPage> {
 
   @override
   Widget build(BuildContext context) {
+    final adConfig = _controller.advancedDesignConfiguration;
+    final uniformColor = adConfig['uniformPrincipalColor'] == true;
+    final rawButtonColor = _dashboardConfiguration['buttonColor'] as String?;
     final buttonColor = _parseColor(
-      _dashboardConfiguration['buttonColor'] as String?,
+      rawButtonColor,
       const Color(0xFF111827),
     );
+    final effectiveButtonColor =
+        uniformColor ? _parseColor(rawButtonColor, const Color(0xFF111827)) : buttonColor;
     final buttonTextColor = _parseColor(
       _dashboardConfiguration['buttonTextColor'] as String?,
       Colors.white,
     );
-    final logoUrl = _dashboardConfiguration['logo'] as String?
-        ?? _dashboardConfiguration['logoURLApp'] as String?;
 
     return Container(
       color: Colors.white,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ---- header: back arrow + logo ----
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => _controller.previousStep(),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: Color(0xFF111827),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  if (logoUrl != null && logoUrl.isNotEmpty)
-                    Image.network(
-                      logoUrl,
-                      height: 28,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.bolt,
-                        color: Color(0xFF111827),
-                      ),
-                    )
-                  else
-                    const Icon(Icons.bolt, color: Color(0xFF111827)),
-                ],
-              ),
-              const Spacer(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DataleonStepHeader(
+              controller: _controller,
+              onBack: _controller.previousStep,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+            const Spacer(),
               // ---- icon ----
               Center(
                 child: Container(
                   width: 80,
                   height: 80,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFECFDF5),
+                  decoration: BoxDecoration(
+                    color: uniformColor
+                        ? effectiveButtonColor.withValues(alpha: 0.12)
+                        : const Color(0xFFECFDF5),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_circle_outline,
                     size: 44,
-                    color: Color(0xFF059669),
+                    color: uniformColor
+                        ? effectiveButtonColor
+                        : const Color(0xFF059669),
                   ),
                 ),
               ),
@@ -257,8 +323,8 @@ class _OutroStepPageState extends State<OutroStepPage> {
                   _outroTitle,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
                     color: Color(0xFF111827),
                     height: 1.2,
                   ),
@@ -268,9 +334,7 @@ class _OutroStepPageState extends State<OutroStepPage> {
               // ---- description ----
               Center(
                 child: Text(
-                  _submitting
-                      ? _t('outroStep.submitting')
-                      : _outroDescription,
+                  _submitting ? _t('outroStep.submitting') : _outroDescription,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 15,
@@ -282,7 +346,15 @@ class _OutroStepPageState extends State<OutroStepPage> {
               const SizedBox(height: 24),
               // ---- status ----
               if (_submitting)
-                const Center(child: LinearProgressIndicator(minHeight: 6))
+                Center(
+                  child: LinearProgressIndicator(
+                    minHeight: 6,
+                    color: uniformColor ? effectiveButtonColor : null,
+                    backgroundColor: uniformColor
+                        ? effectiveButtonColor.withValues(alpha: 0.2)
+                        : null,
+                  ),
+                )
               else if (_errorMessage != null)
                 Center(
                   child: Text(
@@ -299,7 +371,8 @@ class _OutroStepPageState extends State<OutroStepPage> {
                 const SizedBox(height: 14),
                 Center(
                   child: Text(
-                    _t('outroStep.redirect', params: {'seconds': '$_remainingSeconds'}),
+                    _t('outroStep.redirect',
+                        params: {'seconds': '$_remainingSeconds'}),
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF9CA3AF),
@@ -319,7 +392,7 @@ class _OutroStepPageState extends State<OutroStepPage> {
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       child: Text(_t('outroStep.retry')),
@@ -332,17 +405,20 @@ class _OutroStepPageState extends State<OutroStepPage> {
                   onPressed: _submitting ? null : _controller.finish,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(54),
-                    backgroundColor: buttonColor,
+                    backgroundColor: effectiveButtonColor,
                     foregroundColor: buttonTextColor,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: Text(_t('outroStep.close')),
                 ),
               ),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

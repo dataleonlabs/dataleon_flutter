@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"http.server 3001\")",
+      "Bash(npx serve *)",
+      "Bash(nohup python3 /tmp/spa_server.py)",
+      "Bash(curl -s -o /dev/null -w \"HTTP Status: %{http_code}\" http://localhost:3001/some/deep/route)",
+      "Bash(python3 -m http.server 3001 --directory /data/dataleon_flutter/example/build/web --bind 0.0.0.0)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -o /dev/null -w \"web:%{http_code}\" http://127.0.0.1:3001/)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

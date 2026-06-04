@@ -27,4 +27,5 @@ export 'screens/outro_step_page.dart';
 export 'screens/welcome_step_page.dart';
 export 'widgets/dataleon_primary_button.dart';
 export 'widgets/dataleon_step_scaffold.dart';
+export 'widgets/dataleon_theme_wrapper.dart';
 

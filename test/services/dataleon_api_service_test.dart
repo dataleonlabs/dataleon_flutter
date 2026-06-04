@@ -13,7 +13,7 @@ void main() {
   setUp(() {
     config = DataleonConfig(
       sessionId: 'test-session-id',
-      apiKey: 'test-api-key',
+      token: 'jwt-abc-123',
     );
   });
 
@@ -22,89 +22,22 @@ void main() {
   }
 
   group('DataleonApiService', () {
-    group('fetchToken', () {
-      test('sets sessionToken on success', () async {
-        final client = MockClient((request) async {
-          expect(request.method, 'GET');
-          expect(request.url.path, '/token/test-session-id');
-          expect(request.headers['api-key'], 'test-api-key');
-          return http.Response(
-            jsonEncode({'token': 'jwt-abc-123'}),
-            200,
-          );
-        });
-
-        final service = createService(client);
-        final result = await service.fetchToken();
-
-        expect(result['token'], 'jwt-abc-123');
-        expect(config.sessionToken, 'jwt-abc-123');
-      });
-
-      test('does not set token when response has no token', () async {
-        final client = MockClient((request) async {
-          return http.Response(jsonEncode({}), 200);
-        });
-
-        final service = createService(client);
-        await service.fetchToken();
-
-        // Should still return sessionId as fallback
-        expect(config.sessionToken, 'test-session-id');
-      });
-
-      test('does not set token when token is empty string', () async {
-        final client = MockClient((request) async {
-          return http.Response(jsonEncode({'token': ''}), 200);
-        });
-
-        final service = createService(client);
-        await service.fetchToken();
-
-        expect(config.sessionToken, 'test-session-id');
-      });
-
-      test('throws DataleonApiException on non-200 status', () async {
-        final client = MockClient((request) async {
-          return http.Response('Unauthorized', 401);
-        });
-
-        final service = createService(client);
-        expect(
-          () => service.fetchToken(),
-          throwsA(isA<DataleonApiException>()
-              .having((e) => e.statusCode, 'statusCode', 401)),
-        );
-      });
-
-      test('throws DataleonApiException on 403', () async {
-        final client = MockClient((request) async {
-          return http.Response('Forbidden', 403);
-        });
-
-        final service = createService(client);
-        expect(
-          () => service.fetchToken(),
-          throwsA(isA<DataleonApiException>()
-              .having((e) => e.statusCode, 'statusCode', 403)),
-        );
-      });
-    });
-
     group('fetchRequestConfig', () {
       test('posts with correct URL, headers and body', () async {
-        config.sessionToken = 'jwt-token';
         final client = MockClient((request) async {
           expect(request.method, 'POST');
           expect(request.url.path, '/individuals/test-session-id/config');
-          expect(request.headers['Authorization'], 'Bearer jwt-token');
+          expect(request.headers['Authorization'], 'Bearer jwt-abc-123');
           expect(request.headers['X-Trax'], 'test-session-id');
+          expect(request.headers.containsKey('X-Account-Tenant'), isFalse);
 
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           expect(body['request_id'], 'test-session-id');
 
           return http.Response(
-            jsonEncode({'result': {'status': 'active'}}),
+            jsonEncode({
+              'result': {'status': 'active'}
+            }),
             200,
           );
         });
@@ -131,10 +64,9 @@ void main() {
 
     group('applyRequestService', () {
       test('posts to correct path with gateway headers', () async {
-        config.sessionToken = 'jwt';
         final client = MockClient((request) async {
           expect(request.url.path, '/test/path');
-          expect(request.headers['Authorization'], 'Bearer jwt');
+          expect(request.headers['Authorization'], 'Bearer jwt-abc-123');
           return http.Response(jsonEncode({'ok': true}), 200);
         });
 
@@ -200,6 +132,24 @@ void main() {
               .having((e) => e.statusCode, 'statusCode', 400)),
         );
       });
+
+      test('adds X-Account-Tenant only when accountTenant is provided', () async {
+        config = DataleonConfig(
+          sessionId: 'test-session-id',
+          token: 'jwt-abc-123',
+          accountTenant: 'tenant-42',
+        );
+        final client = MockClient((request) async {
+          expect(request.headers['X-Account-Tenant'], 'tenant-42');
+          return http.Response(jsonEncode({'ok': true}), 200);
+        });
+
+        final service = createService(client);
+        await service.applyRequestService(
+          path: '/path',
+          data: {},
+        );
+      });
     });
 
     group('sendCaptureFrame', () {
@@ -247,7 +197,7 @@ void main() {
       test('sends correct payload', () async {
         config = DataleonConfig(
           sessionId: 's',
-          apiKey: 'k',
+          token: 'jwt',
           uploadBucket: 'my-bucket',
         );
         final client = MockClient((request) async {
@@ -491,6 +441,31 @@ void main() {
           throwsA(isA<DataleonApiException>()
               .having((e) => e.statusCode, 'statusCode', 500)),
         );
+      });
+    });
+
+    group('uploadFile', () {
+      test('adds X-Account-Tenant to multipart headers when provided', () async {
+        config = DataleonConfig(
+          sessionId: 'test-session-id',
+          token: 'jwt-abc-123',
+          accountTenant: 'tenant-upload',
+        );
+        final client = MockClient((request) async {
+          expect(request.headers['Authorization'], 'Bearer jwt-abc-123');
+          expect(request.headers['X-Account-Tenant'], 'tenant-upload');
+          return http.Response(jsonEncode({'uploaded': true}), 201);
+        });
+
+        final service = createService(client);
+        final result = await service.uploadFile(
+          stepName: 'document',
+          fieldName: 'front',
+          fileBytes: [1, 2, 3],
+          fileName: 'front.jpg',
+        );
+
+        expect(result['uploaded'], true);
       });
     });
   });

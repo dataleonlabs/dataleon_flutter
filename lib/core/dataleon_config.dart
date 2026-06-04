@@ -1,31 +1,36 @@
 class DataleonConfig {
   final String sessionId;
-  final String apiKey;
+  final String token;
+  final String? accountTenant;
   final String? apiBaseUrl;
   final String? uploadBucket;
   final String appVersion;
-
-  /// Set after calling [DataleonApiService.fetchToken].
-  String? _sessionToken;
+  final String? initialLanguage;
 
   DataleonConfig({
     required this.sessionId,
-    required this.apiKey,
+    required this.token,
+    this.accountTenant,
     this.apiBaseUrl,
     this.uploadBucket,
     this.appVersion = '2.0.0-beta',
+    this.initialLanguage,
   });
 
-  /// The JWT session token. Must be set via [setSessionToken] before API calls.
-  String get sessionToken => _sessionToken ?? sessionId;
+  String get sessionToken => token;
 
-  set sessionToken(String token) => _sessionToken = token;
+  String? get accountTenantHeader {
+    if (accountTenant == null || accountTenant!.isEmpty) {
+      return null;
+    }
+    return accountTenant;
+  }
 
   /// Base URL for API calls.
   String get baseUrl {
     if (apiBaseUrl != null && apiBaseUrl!.isNotEmpty) {
       return apiBaseUrl!;
     }
-    return 'https://inference.eu-west-1.dataleon.ai';
+    return 'https://iron-local.dataleon.ai';
   }
 }

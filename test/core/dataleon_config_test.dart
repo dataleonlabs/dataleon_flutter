@@ -3,19 +3,19 @@ import 'package:dataleon_flutter/core/dataleon_config.dart';
 
 void main() {
   group('DataleonConfig', () {
-    test('requires sessionId and apiKey', () {
+    test('requires sessionId and token', () {
       final config = DataleonConfig(
         sessionId: 'test-session',
-        apiKey: 'test-key',
+        token: 'jwt-token',
       );
       expect(config.sessionId, 'test-session');
-      expect(config.apiKey, 'test-key');
+      expect(config.token, 'jwt-token');
     });
 
     test('appVersion defaults to 2.0.0-beta', () {
       final config = DataleonConfig(
         sessionId: 's',
-        apiKey: 'k',
+        token: 'jwt',
       );
       expect(config.appVersion, '2.0.0-beta');
     });
@@ -23,7 +23,7 @@ void main() {
     test('appVersion can be overridden', () {
       final config = DataleonConfig(
         sessionId: 's',
-        apiKey: 'k',
+        token: 'jwt',
         appVersion: '2.0.0',
       );
       expect(config.appVersion, '2.0.0');
@@ -31,57 +31,71 @@ void main() {
 
     group('baseUrl', () {
       test('returns default URL when apiBaseUrl is null', () {
-        final config = DataleonConfig(sessionId: 's', apiKey: 'k');
-        expect(config.baseUrl, 'https://inference.eu-west-1.dataleon.ai');
+        final config = DataleonConfig(sessionId: 's', token: 'jwt');
+        expect(config.baseUrl, 'https://iron-gpu.dataleon.ai');
       });
 
       test('returns default URL when apiBaseUrl is empty', () {
         final config = DataleonConfig(
           sessionId: 's',
-          apiKey: 'k',
+          token: 'jwt',
           apiBaseUrl: '',
         );
-        expect(config.baseUrl, 'https://inference.eu-west-1.dataleon.ai');
+        expect(config.baseUrl, 'https://iron-gpu.dataleon.ai');
       });
 
       test('returns custom URL when apiBaseUrl is provided', () {
         final config = DataleonConfig(
           sessionId: 's',
-          apiKey: 'k',
+          token: 'jwt',
           apiBaseUrl: 'https://custom.api.com',
         );
         expect(config.baseUrl, 'https://custom.api.com');
       });
     });
 
-    group('sessionToken', () {
-      test('returns sessionId when no token has been set', () {
-        final config = DataleonConfig(sessionId: 'my-uuid', apiKey: 'k');
-        expect(config.sessionToken, 'my-uuid');
-      });
+    test('sessionToken returns provided token', () {
+      final config = DataleonConfig(
+        sessionId: 'my-uuid',
+        token: 'jwt-token-xyz',
+      );
+      expect(config.sessionToken, 'jwt-token-xyz');
+    });
 
-      test('returns JWT after setting sessionToken', () {
-        final config = DataleonConfig(sessionId: 'my-uuid', apiKey: 'k');
-        config.sessionToken = 'jwt-token-xyz';
-        expect(config.sessionToken, 'jwt-token-xyz');
-      });
+    test('accountTenant is null by default', () {
+      final config = DataleonConfig(sessionId: 's', token: 'jwt');
+      expect(config.accountTenant, isNull);
+      expect(config.accountTenantHeader, isNull);
+    });
 
-      test('sessionId remains unchanged after setting token', () {
-        final config = DataleonConfig(sessionId: 'my-uuid', apiKey: 'k');
-        config.sessionToken = 'jwt-token-xyz';
-        expect(config.sessionId, 'my-uuid');
-      });
+    test('accountTenantHeader returns tenant when provided', () {
+      final config = DataleonConfig(
+        sessionId: 's',
+        token: 'jwt',
+        accountTenant: 'tenant-123',
+      );
+      expect(config.accountTenant, 'tenant-123');
+      expect(config.accountTenantHeader, 'tenant-123');
+    });
+
+    test('accountTenantHeader returns null when accountTenant is empty', () {
+      final config = DataleonConfig(
+        sessionId: 's',
+        token: 'jwt',
+        accountTenant: '',
+      );
+      expect(config.accountTenantHeader, isNull);
     });
 
     test('uploadBucket is null by default', () {
-      final config = DataleonConfig(sessionId: 's', apiKey: 'k');
+      final config = DataleonConfig(sessionId: 's', token: 'jwt');
       expect(config.uploadBucket, isNull);
     });
 
     test('uploadBucket can be set', () {
       final config = DataleonConfig(
         sessionId: 's',
-        apiKey: 'k',
+        token: 'jwt',
         uploadBucket: 'my-bucket',
       );
       expect(config.uploadBucket, 'my-bucket');

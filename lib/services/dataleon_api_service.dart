@@ -16,50 +16,26 @@ class DataleonApiService {
     http.Client? client,
   }) : _client = client ?? http.Client();
 
-  Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${config.sessionToken}',
+  Map<String, String> _withAccountTenant(Map<String, String> headers) => {
+        ...headers,
+        if (config.accountTenantHeader != null)
+          'X-Account-Tenant': config.accountTenantHeader!,
       };
 
-  Map<String, String> get _gatewayHeaders => {
+  Map<String, String> get _headers => _withAccountTenant({
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${config.sessionToken}',
+      });
+
+  Map<String, String> get _gatewayHeaders => _withAccountTenant({
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': 'Bearer ${config.sessionToken}',
         'X-Trax': config.sessionId,
         'X-Webview-Version': _webviewVersion,
         'X-Webview-Release': _webviewRelease,
-      'X-App-Version': config.appVersion,
-      };
-
-  /// Fetch a JWT token for the session from the backend.
-  /// Called once at startup before any other API call.
-  Future<Map<String, dynamic>> fetchToken() async {
-    final url = Uri.parse(
-      '${config.baseUrl}/token/${config.sessionId}',
-    );
-
-    final response = await _client.get(
-      url,
-      headers: {
-        'Accept': 'application/json',
-        'api-key': config.apiKey,
-      },
-    );
-
-    if (response.statusCode != 200) {
-      throw DataleonApiException(
-        'Failed to fetch token',
-        statusCode: response.statusCode,
-      );
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final token = body['token'] as String?;
-    if (token != null && token.isNotEmpty) {
-      config.sessionToken = token;
-    }
-    return body;
-  }
+        'X-App-Version': config.appVersion,
+      });
 
   /// Fetch the request configuration and progress from the backend.
   /// Equivalent to the React fetchRequestConfig.
@@ -82,6 +58,20 @@ class DataleonApiService {
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> fetchContentsConfig() async {
+    final url = Uri.parse(
+      '${config.baseUrl}/contents-configs/${config.sessionId}',
+    );
+    try {
+      final response = await _client.get(url, headers: _gatewayHeaders);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) return body;
+      }
+    } catch (_) {}
+    return const <String, dynamic>{};
   }
 
   Future<Map<String, dynamic>> applyRequestService({
@@ -116,7 +106,8 @@ class DataleonApiService {
   Future<Map<String, dynamic>> sendCaptureFrame({
     required Map<String, dynamic> payload,
   }) async {
-    final url = Uri.parse('${config.baseUrl}/individuals/${config.sessionId}/capture');
+    final url =
+        Uri.parse('${config.baseUrl}/individuals/${config.sessionId}/capture');
     final response = await _client.post(
       url,
       headers: _gatewayHeaders,
@@ -166,6 +157,42 @@ class DataleonApiService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> generateSignedGetUrl({
+    required String objectName,
+    String? bucket,
+  }) async {
+    final url = Uri.parse('${config.baseUrl}/generate-signed-url');
+    final response = await _client.post(
+      url,
+      headers: _gatewayHeaders,
+      body: jsonEncode({
+        'key': objectName,
+        'type': 'GET',
+        'bucket': bucket ?? config.uploadBucket ?? '',
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw DataleonApiException(
+        'Failed to generate signed GET url',
+        statusCode: response.statusCode,
+      );
+    }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<List<int>> downloadBytes(String url) async {
+    final response = await _client.get(Uri.parse(url));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw DataleonApiException(
+        'Failed to download bytes from $url',
+        statusCode: response.statusCode,
+      );
+    }
+    return response.bodyBytes;
+  }
+
   Future<String> uploadBytesToSignedUrl({
     required String signedUrl,
     required List<int> bytes,
@@ -210,7 +237,8 @@ class DataleonApiService {
 
   /// Fetch the current session info from the backend.
   Future<DataleonSession> getSession() async {
-    final url = Uri.parse('${config.baseUrl}/api/v1/sessions/${config.sessionId}');
+    final url =
+        Uri.parse('${config.baseUrl}/api/v1/sessions/${config.sessionId}');
     final response = await _client.get(url, headers: _headers);
 
     if (response.statusCode != 200) {
@@ -261,7 +289,11 @@ class DataleonApiService {
     );
 
     final request = http.MultipartRequest('POST', url)
-      ..headers.addAll({'Authorization': 'Bearer ${config.sessionToken}'})
+      ..headers.addAll(
+        _withAccountTenant({
+          'Authorization': 'Bearer ${config.sessionToken}',
+        }),
+      )
       ..fields['step'] = stepName
       ..files.add(http.MultipartFile.fromBytes(
         fieldName,

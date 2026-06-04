@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../flow/dataleon_flow_controller.dart';
 import '../i18n/dataleon_localizations.dart';
+import '../widgets/dataleon_step_header.dart';
 
 class WelcomeStepPage extends StatefulWidget {
   final DataleonFlowController controller;
@@ -282,10 +283,6 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
     final dashboardConfiguration = widget.controller.dashboardConfiguration;
     final applicationName =
         dashboardConfiguration['applicationName'] as String? ?? 'Dataleon';
-    final logoUrl = dashboardConfiguration['logo'] as String? ??
-        dashboardConfiguration['logoURLApp'] as String?;
-    final logoHeight =
-        (dashboardConfiguration['logoHeight'] as num?)?.toDouble() ?? 30;
     final buttonColor = _parseColor(
       dashboardConfiguration['buttonColor'] as String?,
       const Color(0xFF222222),
@@ -306,6 +303,17 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
       orElse: () => _languages.first,
     );
 
+    final adConfig = widget.controller.advancedDesignConfiguration;
+    final languageSelectionDisabled =
+        adConfig['languageSelectionDisabled'] == true;
+    final uniformPrincipal = adConfig['uniformPrincipalColor'] == true;
+    final termsDisabled = adConfig['termsAndConditionsDisabled'] == true;
+
+    final wc = widget.controller.webviewConfig;
+    final introTitle = (wc['intro_title'] as String?)?.trim() ?? '';
+    final introPreambule = (wc['intro_preambule'] as String?)?.trim() ?? '';
+    final introTerms = (wc['intro_terms'] as String?)?.trim() ?? '';
+
     if (_isLanguagePageOpen) {
       return _buildLanguageSelectionPage(accentColor);
     }
@@ -316,13 +324,8 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-              child: _DataleonLogo(
-                applicationName: applicationName,
-                logoUrl: logoUrl,
-                logoHeight: logoHeight,
-              ),
+            DataleonStepHeader(
+              controller: widget.controller,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -330,33 +333,48 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RichText(
-                      text: TextSpan(
+                    if (introPreambule.isNotEmpty)
+                      Text(
+                        introPreambule,
                         style: const TextStyle(
                           fontSize: 15,
                           color: Colors.black,
                           height: 1.5,
                         ),
-                        children: [
-                          TextSpan(
-                            text: '$applicationName ',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                      )
+                    else
+                      Text.rich(
+                        TextSpan(
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.black,
+                            height: 1.5,
                           ),
-                          TextSpan(
-                            text:
-                                _t('intro.preambule', params: {'appName': ''}),
-                          ),
-                          const TextSpan(
-                            text: '2 minutes',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const TextSpan(text: '.'),
-                        ],
+                          children: [
+                            TextSpan(
+                              text: '$applicationName ',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            TextSpan(
+                              text: _t(
+                                'intro.preambule',
+                                params: {'appName': ''},
+                              ),
+                            ),
+                            const TextSpan(
+                              text: '2 minutes',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 28),
                     Text(
-                      _t('intro.preambleTitle'),
+                      introTitle.isNotEmpty
+                          ? introTitle
+                          : _t('intro.preambleTitle'),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -374,18 +392,21 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                     ),
                     const SizedBox(height: 12),
                     _RequirementItem(
-                      icon: Icons.camera_rear_outlined,
+                      icon: Icons.camera_outlined,
                       text: _t('intro.requirements.rearCamera'),
+                      iconColor: uniformPrincipal ? accentColor : Colors.black,
                     ),
                     const SizedBox(height: 12),
                     _RequirementItem(
                       icon: Icons.badge_outlined,
                       text: _t('intro.requirements.idDocument'),
+                      iconColor: uniformPrincipal ? accentColor : Colors.black,
                     ),
                     const SizedBox(height: 12),
                     _RequirementItem(
-                      icon: Icons.camera_front_outlined,
+                      icon: Icons.face_outlined,
                       text: _t('intro.requirements.frontCamera'),
+                      iconColor: uniformPrincipal ? accentColor : Colors.black,
                     ),
                     const SizedBox(height: 20),
                     Container(
@@ -398,7 +419,7 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.shield_outlined,
                             size: 22,
                             color: Colors.black,
@@ -426,100 +447,118 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  InkWell(
-                    onTap: _openLanguagePage,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFA),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.public_rounded,
-                            color: Color(0xFF6B7280),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            selectedLanguage['flag'] ?? '',
-                            style: const TextStyle(fontSize: 18),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              selectedLanguage['label']!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF374151),
+                  if (!languageSelectionDisabled) ...[
+                    InkWell(
+                      onTap: _openLanguagePage,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAFAFA),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.public_rounded,
+                              color: Color(0xFF6B7280),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              selectedLanguage['flag'] ?? '',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                selectedLanguage['label']!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF374151),
+                                ),
                               ),
                             ),
-                          ),
-                          const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF9CA3AF),
-                            size: 20,
-                          ),
-                        ],
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF9CA3AF),
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text.rich(
-                    TextSpan(
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black,
-                        height: 1.5,
+                    const SizedBox(height: 14),
+                  ],
+                  if (!termsDisabled) ...[
+                    if (introTerms.isNotEmpty)
+                      Text(
+                        introTerms,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black,
+                          height: 1.5,
+                        ),
+                      )
+                    else
+                      Text.rich(
+                        TextSpan(
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                            height: 1.5,
+                          ),
+                          children: [
+                            TextSpan(text: _t('intro.termsNotice')),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => _openExternalLink(cguUrl),
+                                child: Text(
+                                  _t('intro.termsOfUse'),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: uniformPrincipal
+                                        ? accentColor
+                                        : const Color(0xFF2563EB),
+                                    decoration: TextDecoration.underline,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            TextSpan(text: _t('intro.and')),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => _openExternalLink(privacyUrl),
+                                child: Text(
+                                  _t('intro.privacyPolicy'),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: uniformPrincipal
+                                        ? accentColor
+                                        : const Color(0xFF2563EB),
+                                    decoration: TextDecoration.underline,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
                       ),
-                      children: [
-                        TextSpan(text: _t('intro.termsNotice')),
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.baseline,
-                          baseline: TextBaseline.alphabetic,
-                          child: GestureDetector(
-                            onTap: () => _openExternalLink(cguUrl),
-                            child: Text(
-                              _t('intro.termsOfUse'),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF2563EB),
-                                decoration: TextDecoration.underline,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        TextSpan(text: _t('intro.and')),
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.baseline,
-                          baseline: TextBaseline.alphabetic,
-                          child: GestureDetector(
-                            onTap: () => _openExternalLink(privacyUrl),
-                            child: Text(
-                              _t('intro.privacyPolicy'),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF2563EB),
-                                decoration: TextDecoration.underline,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const TextSpan(text: '.'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
+                    const SizedBox(height: 14),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -559,58 +598,17 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
   }
 }
 
-class _DataleonLogo extends StatelessWidget {
-  const _DataleonLogo({
-    required this.applicationName,
-    required this.logoUrl,
-    required this.logoHeight,
-  });
-
-  final String applicationName;
-  final String? logoUrl;
-  final double logoHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        if (logoUrl != null && logoUrl!.isNotEmpty)
-          Image.network(
-            logoUrl!,
-            height: logoHeight,
-            errorBuilder: (_, __, ___) => const _LogoFallback(),
-          )
-        else
-          const _LogoFallback(),
-      ],
-    );
-  }
-}
-
-class _LogoFallback extends StatelessWidget {
-  const _LogoFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: const Color(0xFF111827),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Center(
-        child: Icon(Icons.bolt, size: 18, color: Colors.white),
-      ),
-    );
-  }
-}
 
 class _RequirementItem extends StatelessWidget {
   final IconData icon;
   final String text;
+  final Color iconColor;
 
-  const _RequirementItem({required this.icon, required this.text});
+  const _RequirementItem({
+    required this.icon,
+    required this.text,
+    this.iconColor = Colors.black,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -619,7 +617,7 @@ class _RequirementItem extends StatelessWidget {
       children: [
         SizedBox(
           width: 30,
-          child: Icon(icon, size: 26, color: Colors.black),
+          child: Icon(icon, size: 26, color: iconColor),
         ),
         const SizedBox(width: 10),
         Expanded(

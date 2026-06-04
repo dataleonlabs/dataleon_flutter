@@ -16,7 +16,7 @@ void main() {
   late DataleonFlowController controller;
 
   setUp(() {
-    config = DataleonConfig(sessionId: 'sid', apiKey: 'key');
+    config = DataleonConfig(sessionId: 'sid', token: 'jwt');
   });
 
   tearDown(() {
@@ -70,7 +70,7 @@ void main() {
 
     test('default steps list has all steps', () {
       createController();
-      expect(controller.steps.length, 12);
+      expect(controller.steps.length, 13);
       expect(controller.steps.first, DataleonFlowStep.loading);
       expect(controller.steps.last, DataleonFlowStep.success);
     });
@@ -240,7 +240,8 @@ void main() {
 
     test('selectDocumentType with custom document', () {
       createController();
-      controller.selectDocumentType('custom', customDocument: {'key': 'invoice'});
+      controller
+          .selectDocumentType('custom', customDocument: {'key': 'invoice'});
       expect(controller.documentType, 'custom');
       expect(controller.selectedCustomDocument!['key'], 'invoice');
     });
@@ -390,9 +391,6 @@ void main() {
       });
 
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'result': {
@@ -422,9 +420,6 @@ void main() {
       });
 
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'result': {
@@ -453,9 +448,6 @@ void main() {
   group('fetchConfig', () {
     test('navigates to welcome on successful config', () async {
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'result': {
@@ -480,9 +472,6 @@ void main() {
 
     test('navigates to alreadyProcessed when config has error true', () async {
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'error': true,
@@ -503,10 +492,7 @@ void main() {
 
     test('navigates to alreadyProcessed on 403 error', () async {
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response('Forbidden', 403);
-        }
-        return http.Response('', 200);
+        return http.Response('Forbidden', 403);
       });
 
       final apiService = DataleonApiService(config: config, client: client);
@@ -519,10 +505,7 @@ void main() {
 
     test('navigates to error on non-403 API error', () async {
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response('Server Error', 500);
-        }
-        return http.Response('', 200);
+        return http.Response('Server Error', 500);
       });
 
       final apiService = DataleonApiService(config: config, client: client);
@@ -541,9 +524,6 @@ void main() {
       });
 
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'result': {
@@ -569,7 +549,8 @@ void main() {
     });
 
     test('parses webviewConfig YAML from workspace', () async {
-      final yamlConfig = 'form:\n  - page_action: capture\n    title: Photo\n  - page_action: review\n    title: Review';
+      final yamlConfig =
+          'form:\n  - page_action: capture\n    title: Photo\n  - page_action: review\n    title: Review';
       final workspace = jsonEncode({
         'dashboardConfiguration': {
           'webviewConfig': yamlConfig,
@@ -577,9 +558,6 @@ void main() {
       });
 
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'result': {
@@ -606,7 +584,8 @@ void main() {
     });
 
     test('uses webviewConfigEN for English language', () async {
-      final yamlConfig = 'form:\n  - page_action: capture_en\n    title: Photo EN';
+      final yamlConfig =
+          'form:\n  - page_action: capture_en\n    title: Photo EN';
       final workspace = jsonEncode({
         'dashboardConfiguration': {
           'webviewConfigEN': yamlConfig,
@@ -615,9 +594,6 @@ void main() {
       });
 
       final client = MockClient((request) async {
-        if (request.url.path.contains('/token/')) {
-          return http.Response(jsonEncode({'token': 'jwt'}), 200);
-        }
         return http.Response(
           jsonEncode({
             'result': {
@@ -638,7 +614,8 @@ void main() {
 
       expect(controller.languageCode, 'en');
       expect(controller.webviewConfig['form'], isList);
-      final actions = controller.formSteps.map((s) => s['page_action']).toList();
+      final actions =
+          controller.formSteps.map((s) => s['page_action']).toList();
       expect(actions, contains('capture_en'));
     });
   });
@@ -744,7 +721,8 @@ void main() {
   group('uploadFile', () {
     test('returns response on success', () async {
       final client = MockClient((request) async {
-        return http.Response(jsonEncode({'fileUrl': 'https://s3/file.jpg'}), 200);
+        return http.Response(
+            jsonEncode({'fileUrl': 'https://s3/file.jpg'}), 200);
       });
 
       final apiService = DataleonApiService(config: config, client: client);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../flow/dataleon_flow_controller.dart';
 import '../i18n/dataleon_localizations.dart';
+import '../widgets/dataleon_step_header.dart';
 
 class DocumentCountryStepPage extends StatefulWidget {
   const DocumentCountryStepPage({
@@ -149,6 +150,14 @@ class _DocumentCountryStepPageState extends State<DocumentCountryStepPage> {
         (kycCountries != null ? kycCountries[selectedDocumentType] as List? : null) ??
         const [];
 
+    final adConfig = widget.controller.advancedDesignConfiguration;
+    final uniformPrincipal = adConfig['uniformPrincipalColor'] == true;
+    final accentColor = _parseColor(
+      dashboardConfiguration['buttonColor'] as String?,
+      const Color(0xFF3B82F6),
+    );
+    final focusedBorderColor = uniformPrincipal ? accentColor : const Color(0xFF3B82F6);
+
     final countryCodes = <String>{};
     for (final item in countriesSource) {
       if (item is Map<String, dynamic>) {
@@ -199,7 +208,7 @@ class _DocumentCountryStepPageState extends State<DocumentCountryStepPage> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+            borderSide: BorderSide(color: focusedBorderColor, width: 1.5),
           ),
         ),
       ),
@@ -262,36 +271,14 @@ class _CountryScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dashboardConfiguration = controller.dashboardConfiguration;
-    final logoUrl = dashboardConfiguration['logo'] as String?
-        ?? dashboardConfiguration['logoURLApp'] as String?;
-    final logoHeight =
-        (dashboardConfiguration['logoHeight'] as num?)?.toDouble() ?? 24;
-
     return Container(
       color: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: controller.previousStep,
-                    icon: const Icon(Icons.arrow_back, color: Color(0xFF111827)),
-                  ),
-                  const SizedBox(width: 4),
-                  if (logoUrl != null && logoUrl.isNotEmpty)
-                    Image.network(
-                      logoUrl,
-                      height: logoHeight,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.bolt),
-                    )
-                  else
-                    const Icon(Icons.bolt, color: Color(0xFF111827)),
-                ],
-              ),
+            DataleonStepHeader(
+              controller: controller,
+              onBack: controller.previousStep,
             ),
             Expanded(
               child: Padding(
@@ -356,4 +343,12 @@ class _CountryFlag extends StatelessWidget {
       style: const TextStyle(fontSize: 20),
     );
   }
+}
+
+Color _parseColor(String? rawColor, Color fallback) {
+  if (rawColor == null || rawColor.isEmpty) return fallback;
+  final normalized = rawColor.replaceAll('#', '');
+  final hex = normalized.length == 6 ? 'FF$normalized' : normalized;
+  final value = int.tryParse(hex, radix: 16);
+  return value == null ? fallback : Color(value);
 }
