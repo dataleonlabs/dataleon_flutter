@@ -70,7 +70,7 @@ void main() {
 
     test('default steps list has all steps', () {
       createController();
-      expect(controller.steps.length, 13);
+      expect(controller.steps.length, 14);
       expect(controller.steps.first, DataleonFlowStep.loading);
       expect(controller.steps.last, DataleonFlowStep.success);
     });
@@ -763,6 +763,477 @@ void main() {
     test('returns empty map when no config', () {
       createController();
       expect(controller.requestResult, isEmpty);
+    });
+  });
+
+  group('Getters coverage', () {
+    test('contentsConfig is empty by default', () {
+      createController();
+      expect(controller.contentsConfig, isEmpty);
+    });
+
+    test('activeChainedDocument is null by default', () {
+      createController();
+      expect(controller.activeChainedDocument, isNull);
+    });
+
+    test('selectedChainedDocumentOption is null by default', () {
+      createController();
+      expect(controller.selectedChainedDocumentOption, isNull);
+    });
+
+    test('pendingChainedDocuments is empty by default', () {
+      createController();
+      expect(controller.pendingChainedDocuments, isEmpty);
+    });
+
+    test('completedDocumentKeys is empty by default', () {
+      createController();
+      expect(controller.completedDocumentKeys, isEmpty);
+    });
+
+    test('hasCompletedChainedCustomDocuments is false by default', () {
+      createController();
+      expect(controller.hasCompletedChainedCustomDocuments, false);
+    });
+
+    test('customFontFamily is null by default', () {
+      createController();
+      expect(controller.customFontFamily, isNull);
+    });
+
+    test('customDocuments is empty by default', () {
+      createController();
+      expect(controller.customDocuments, isEmpty);
+    });
+
+    test('visibleCustomDocuments is empty by default', () {
+      createController();
+      expect(controller.visibleCustomDocuments, isEmpty);
+    });
+  });
+
+  group('currentDocumentKey', () {
+    test('returns null when no document selected', () {
+      createController();
+      expect(controller.currentDocumentKey, isNull);
+    });
+
+    test('returns documentType when set', () {
+      createController();
+      controller.selectDocumentType('passport');
+      expect(controller.currentDocumentKey, 'passport');
+    });
+
+    test('returns customDocument key when present', () {
+      createController();
+      controller.selectDocumentType('custom', customDocument: {'key': 'invoice'});
+      expect(controller.currentDocumentKey, 'invoice');
+    });
+  });
+
+  group('selectChainedDocumentOption', () {
+    test('sets null clears option', () {
+      createController();
+      controller.selectChainedDocumentOption(null);
+      expect(controller.selectedChainedDocumentOption, isNull);
+    });
+
+    test('sets option with internalName updates documentType', () {
+      createController();
+      controller.selectChainedDocumentOption({
+        'internalName': 'passport_internal',
+      });
+      expect(controller.documentType, 'passport_internal');
+    });
+
+    test('falls back to activeChainedDocument key when no internalName', () {
+      createController();
+      // Simulate active chained document via beginChainedDocument
+      controller.beginChainedDocument({'key': 'kyb_doc'});
+      controller.selectChainedDocumentOption({'label': 'Option A'});
+      expect(controller.documentType, 'kyb_doc');
+    });
+
+    test('notifies listeners', () {
+      createController();
+      var notified = false;
+      controller.addListener(() => notified = true);
+      controller.selectChainedDocumentOption(null);
+      expect(notified, true);
+    });
+  });
+
+  group('isChainedCustomDocument', () {
+    test('returns false for null document', () {
+      createController();
+      expect(controller.isChainedCustomDocument(null), false);
+    });
+
+    test('returns false when enableDocumentChain is missing', () {
+      createController();
+      expect(
+        controller.isChainedCustomDocument({'key': 'invoice'}),
+        false,
+      );
+    });
+
+    test('returns false when previousDocumentKey is missing', () {
+      createController();
+      expect(
+        controller.isChainedCustomDocument({'enableDocumentChain': true}),
+        false,
+      );
+    });
+
+    test('returns true when enableDocumentChain and previousDocumentKey set', () {
+      createController();
+      expect(
+        controller.isChainedCustomDocument({
+          'enableDocumentChain': true,
+          'previousDocumentKey': 'id_card',
+        }),
+        true,
+      );
+    });
+
+    test('returns false when previousDocumentKey is empty string', () {
+      createController();
+      expect(
+        controller.isChainedCustomDocument({
+          'enableDocumentChain': true,
+          'previousDocumentKey': '',
+        }),
+        false,
+      );
+    });
+  });
+
+  group('getFlowStepTrigger', () {
+    test('returns null for null input', () {
+      createController();
+      expect(controller.getFlowStepTrigger(null), isNull);
+    });
+
+    test('returns null for plain key without prefix', () {
+      createController();
+      expect(controller.getFlowStepTrigger('id_card'), isNull);
+    });
+
+    test('returns integer for __step__:N format', () {
+      createController();
+      expect(controller.getFlowStepTrigger('__step__:2'), 2);
+    });
+
+    test('returns null for __step__: with non-integer', () {
+      createController();
+      expect(controller.getFlowStepTrigger('__step__:abc'), isNull);
+    });
+  });
+
+  group('matchesPreviousDocumentKey', () {
+    test('returns false for null previousDocumentKey', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey(null, 'passport', null),
+        false,
+      );
+    });
+
+    test('returns true when keys match exactly', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey('passport', 'passport', null),
+        true,
+      );
+    });
+
+    test('returns false when keys differ', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey('id_card', 'passport', null),
+        false,
+      );
+    });
+
+    test('returns true when step trigger matches', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey('__step__:1', 'id_card', 1),
+        true,
+      );
+    });
+
+    test('returns false when step trigger does not match', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey('__step__:2', 'id_card', 1),
+        false,
+      );
+    });
+
+    test('returns true for id shorthand with passport', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey('id', 'passport', null),
+        true,
+      );
+    });
+
+    test('returns false for id shorthand with unknown doc', () {
+      createController();
+      expect(
+        controller.matchesPreviousDocumentKey('id', 'invoice', null),
+        false,
+      );
+    });
+  });
+
+  group('matchesPreviousStepTriggerOptionValues', () {
+    test('returns true when list is null', () {
+      createController();
+      expect(
+        controller.matchesPreviousStepTriggerOptionValues(null, 'doc', null),
+        true,
+      );
+    });
+
+    test('returns true when list is empty', () {
+      createController();
+      expect(
+        controller.matchesPreviousStepTriggerOptionValues([], 'doc', null),
+        true,
+      );
+    });
+
+    test('returns true when trigger matches', () {
+      createController();
+      expect(
+        controller.matchesPreviousStepTriggerOptionValues(
+          ['invoice::option_a'],
+          'invoice',
+          'option_a',
+        ),
+        true,
+      );
+    });
+
+    test('returns false when trigger does not match', () {
+      createController();
+      expect(
+        controller.matchesPreviousStepTriggerOptionValues(
+          ['invoice::option_b'],
+          'invoice',
+          'option_a',
+        ),
+        false,
+      );
+    });
+  });
+
+  group('hasWorldCountryForCustomDocument', () {
+    test('returns false for null document', () {
+      createController();
+      expect(controller.hasWorldCountryForCustomDocument(null), false);
+    });
+
+    test('returns false when countries not a list', () {
+      createController();
+      expect(
+        controller.hasWorldCountryForCustomDocument({'countries': 'FR'}),
+        false,
+      );
+    });
+
+    test('returns true when countries contains world', () {
+      createController();
+      expect(
+        controller.hasWorldCountryForCustomDocument({
+          'countries': [
+            {'key': 'FR'},
+            {'key': 'world'},
+          ],
+        }),
+        true,
+      );
+    });
+
+    test('returns false when countries has no world', () {
+      createController();
+      expect(
+        controller.hasWorldCountryForCustomDocument({
+          'countries': [
+            {'key': 'FR'},
+            {'key': 'DE'},
+          ],
+        }),
+        false,
+      );
+    });
+  });
+
+  group('shouldSkipCountryStepForCustomDocument', () {
+    test('returns true when only world country', () {
+      createController();
+      expect(
+        controller.shouldSkipCountryStepForCustomDocument({
+          'countries': [
+            {'key': 'world'},
+          ],
+        }),
+        true,
+      );
+    });
+
+    test('returns false when has selectable countries', () {
+      createController();
+      expect(
+        controller.shouldSkipCountryStepForCustomDocument({
+          'countries': [
+            {'key': 'world'},
+            {'value': 'fr'},
+          ],
+        }),
+        false,
+      );
+    });
+  });
+
+  group('handleCaptureClose', () {
+    test('goes to chainedCustomDocument when active chained doc set', () {
+      createController();
+      controller.beginChainedDocument({'key': 'kyb_doc'});
+      controller.handleCaptureClose();
+      expect(controller.currentStep, DataleonFlowStep.chainedCustomDocument);
+    });
+
+    test('calls previousStep when no active chained doc and no passport', () {
+      createController();
+      controller.selectDocumentType('id_card');
+      controller.nextStep(); // go to index 1
+      controller.handleCaptureClose();
+      expect(controller.currentIndex, 0);
+    });
+  });
+
+  group('exitChainedDocumentFlow', () {
+    test('clears all chained state and goes to documentType', () {
+      createController();
+      controller.beginChainedDocument({'key': 'kyb_doc'});
+      controller.exitChainedDocumentFlow();
+      expect(controller.activeChainedDocument, isNull);
+      expect(controller.pendingChainedDocuments, isEmpty);
+      expect(controller.selectedChainedDocumentOption, isNull);
+      expect(controller.selectedCustomDocument, isNull);
+      expect(controller.documentType, isNull);
+      expect(controller.documentCountry, isNull);
+      expect(controller.currentStep, DataleonFlowStep.documentType);
+    });
+  });
+
+  group('beginChainedDocument', () {
+    test('sets active chained document and navigates', () {
+      createController();
+      controller.beginChainedDocument({
+        'key': 'kyb_doc',
+        'countries': [{'key': 'world'}],
+      });
+      expect(controller.activeChainedDocument, isNotNull);
+      expect(controller.documentType, 'kyb_doc');
+    });
+
+    test('goes to chainedDocumentIntro when intro content exists', () async {
+      final workspace = jsonEncode({
+        'dashboardConfiguration': {
+          'webviewConfig': 'intro_custom_document: "Please upload your KYB"',
+        },
+      });
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {'workspace': workspace}},
+          }),
+          200,
+        );
+      });
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+      await controller.fetchConfig();
+
+      controller.beginChainedDocument({'key': 'kyb_doc'});
+      expect(controller.currentStep, DataleonFlowStep.chainedDocumentIntro);
+    });
+  });
+
+  group('chainedDocumentIntroComplete', () {
+    test('marks intro shown and advances to chainedCustomDocument', () {
+      createController();
+      controller.chainedDocumentIntroComplete();
+      expect(controller.currentStep, DataleonFlowStep.chainedCustomDocument);
+    });
+  });
+
+  group('advancedDesignConfiguration', () {
+    test('returns empty map when no workspace', () {
+      createController();
+      expect(controller.advancedDesignConfiguration, isEmpty);
+    });
+
+    test('parses JSON string from dashboardConfiguration', () async {
+      final advConfig = jsonEncode({'customFontEnabled': true});
+      final workspace = jsonEncode({
+        'dashboardConfiguration': {
+          'advancedDesignConfiguration': advConfig,
+        },
+      });
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {'workspace': workspace}},
+          }),
+          200,
+        );
+      });
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+      await controller.fetchConfig();
+
+      expect(controller.advancedDesignConfiguration['customFontEnabled'], true);
+    });
+  });
+
+  group('getNextChainedDocuments', () {
+    test('returns empty list for null completedDocumentKey', () {
+      createController();
+      expect(controller.getNextChainedDocuments(null), isEmpty);
+    });
+
+    test('returns empty list for empty completedDocumentKey', () {
+      createController();
+      expect(controller.getNextChainedDocuments(''), isEmpty);
+    });
+
+    test('returns empty list when no customDocuments in workspace', () {
+      createController();
+      expect(controller.getNextChainedDocuments('passport'), isEmpty);
+    });
+  });
+
+  group('saveUploadedFile with documentKey', () {
+    test('stores file by document key when documentType is set', () {
+      createController();
+      controller.selectDocumentType('passport');
+      controller.saveUploadedFile(
+        phase: 'front',
+        url: 'https://s3/front.jpg',
+        name: 'front.jpg',
+        key: 'front-key',
+      );
+      expect(controller.uploadedFilesByDocument['passport'], isNotNull);
+      expect(
+        controller.uploadedFilesByDocument['passport']!['front']!['url'],
+        'https://s3/front.jpg',
+      );
     });
   });
 }

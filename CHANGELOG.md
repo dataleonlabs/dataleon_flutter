@@ -1,3 +1,13 @@
+## 2.0.2
+
+- Fix: upload des documents chaînés (`other-documents`) — correction du mapping `document_type`/`document_subtype` qui provoquait une erreur 422, alignement sur le flow web.
+- Fix: les documents chaînés n'appellent plus `save-document` (réservé aux documents standards), uniquement `other-documents`.
+- Fix: migration de l'appel `file_picker` vers l'API statique `FilePicker.pickFiles` (file_picker 11.x).
+- Le message d'erreur d'upload affiche désormais le détail technique pour faciliter le diagnostic.
+- Ajout de `customerAssetsBucket` dans `DataleonConfig` (bucket d'assets client configurable au lieu d'une valeur en dur).
+- `DataleonConfig` valide désormais que `apiBaseUrl` utilise HTTPS.
+- Nettoyage des `debugPrint` de diagnostic.
+
 ## 2.0.1
 
 - Fix: mise à jour de l'URL API par défaut vers inference.eu-west-1.dataleon.ai.

@@ -12,27 +12,24 @@ void main() {
       expect(config.token, 'jwt-token');
     });
 
-    test('appVersion defaults to 2.0.0-beta', () {
-      final config = DataleonConfig(
-        sessionId: 's',
-        token: 'jwt',
-      );
-      expect(config.appVersion, '2.0.0-beta');
+    test('appVersion defaults to 2.0.0', () {
+      final config = DataleonConfig(sessionId: 's', token: 'jwt');
+      expect(config.appVersion, '2.0.0');
     });
 
     test('appVersion can be overridden', () {
       final config = DataleonConfig(
         sessionId: 's',
         token: 'jwt',
-        appVersion: '2.0.0',
+        appVersion: '3.0.0',
       );
-      expect(config.appVersion, '2.0.0');
+      expect(config.appVersion, '3.0.0');
     });
 
     group('baseUrl', () {
       test('returns default URL when apiBaseUrl is null', () {
         final config = DataleonConfig(sessionId: 's', token: 'jwt');
-        expect(config.baseUrl, 'https://iron-gpu.dataleon.ai');
+        expect(config.baseUrl, 'https://inference.eu-west-1.dataleon.ai');
       });
 
       test('returns default URL when apiBaseUrl is empty', () {
@@ -41,7 +38,7 @@ void main() {
           token: 'jwt',
           apiBaseUrl: '',
         );
-        expect(config.baseUrl, 'https://iron-gpu.dataleon.ai');
+        expect(config.baseUrl, 'https://inference.eu-west-1.dataleon.ai');
       });
 
       test('returns custom URL when apiBaseUrl is provided', () {
@@ -51,6 +48,37 @@ void main() {
           apiBaseUrl: 'https://custom.api.com',
         );
         expect(config.baseUrl, 'https://custom.api.com');
+      });
+    });
+
+    group('HTTPS assertion', () {
+      test('accepts null apiBaseUrl', () {
+        expect(
+          () => DataleonConfig(sessionId: 's', token: 'jwt'),
+          returnsNormally,
+        );
+      });
+
+      test('accepts https apiBaseUrl', () {
+        expect(
+          () => DataleonConfig(
+            sessionId: 's',
+            token: 'jwt',
+            apiBaseUrl: 'https://secure.api.com',
+          ),
+          returnsNormally,
+        );
+      });
+
+      test('rejects http apiBaseUrl in debug mode', () {
+        expect(
+          () => DataleonConfig(
+            sessionId: 's',
+            token: 'jwt',
+            apiBaseUrl: 'http://insecure.api.com',
+          ),
+          throwsA(isA<AssertionError>()),
+        );
       });
     });
 
@@ -99,6 +127,43 @@ void main() {
         uploadBucket: 'my-bucket',
       );
       expect(config.uploadBucket, 'my-bucket');
+    });
+
+    group('customerAssetsBucket', () {
+      test('defaults to yap-assets-customer', () {
+        final config = DataleonConfig(sessionId: 's', token: 'jwt');
+        expect(config.customerAssetsBucket, 'yap-assets-customer');
+      });
+
+      test('can be overridden', () {
+        final config = DataleonConfig(
+          sessionId: 's',
+          token: 'jwt',
+          customerAssetsBucket: 'my-assets-bucket',
+        );
+        expect(config.customerAssetsBucket, 'my-assets-bucket');
+      });
+    });
+
+    group('initialLanguage', () {
+      test('is null by default', () {
+        final config = DataleonConfig(sessionId: 's', token: 'jwt');
+        expect(config.initialLanguage, isNull);
+      });
+
+      test('can be set', () {
+        final config = DataleonConfig(
+          sessionId: 's',
+          token: 'jwt',
+          initialLanguage: 'en',
+        );
+        expect(config.initialLanguage, 'en');
+      });
+    });
+
+    test('dispose() can be called without error', () {
+      final config = DataleonConfig(sessionId: 's', token: 'jwt');
+      expect(() => config.dispose(), returnsNormally);
     });
   });
 }

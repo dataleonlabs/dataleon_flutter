@@ -179,7 +179,7 @@ class _ChainedCustomDocumentStepPageState
       return;
     }
 
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: false,
       withData: true,
       type: FileType.custom,
@@ -249,62 +249,58 @@ class _ChainedCustomDocumentStepPageState
         _uploadProgress = 92;
       });
 
-      await controller.apiService.applyRequestService(
+      // Chained documents are saved only through the other-documents
+      // verification endpoint. save-document is reserved for standard
+      // ("vertical") documents and must not be called here.
+      //
+      // This mirrors the web flow: other-documents receives the same rich
+      // verification payload and headers as save-document, plus the
+      // chained-specific fields. To match the backend contract exactly:
+      //   document_type    -> activeChainedDocument.key
+      //   document_subtype -> documentType (the selected option internalName)
+      //   language         -> current language
+      final otherPayload = _buildUploadPayload(
+        fileUrl: publicUrl,
+        filename: filename,
+      )
+        ..['document_type'] = controller.activeChainedDocument?['key'] ?? ''
+        ..['document_subtype'] = controller.documentType ?? ''
+        ..['language'] = controller.languageCode;
+
+      final otherResp = await controller.apiService.applyRequestService(
         path:
-            '/individuals/${controller.config.sessionId}/verifications/save-document',
-        data: _buildUploadPayload(
-          fileUrl: publicUrl,
-          filename: filename,
-        ),
+            '/individuals/${controller.config.sessionId}/verifications/other-documents',
+        data: otherPayload,
         headers: _requestHeaders(),
       );
 
-      // Duplicate the document entry to the other-documents verification endpoint
-      try {
-        final docSubtype = (controller.selectedChainedDocumentOption?['internalName'] as String?) ?? '';
-        final otherPayload = <String, dynamic>{
-          'document_type': controller.documentType ?? controller.activeChainedDocument?['key'] ?? '',
-          'document_subtype': docSubtype,
-          'language': controller.languageCode,
-          'url': publicUrl,
-          'filename': filename,
-        };
+      // Parse business validation results if present: checks, validations or errors
+      List<dynamic>? validations;
+      if (otherResp['checks'] is List) {
+        validations = otherResp['checks'] as List<dynamic>;
+      } else if (otherResp['validations'] is List) {
+        validations = otherResp['validations'] as List<dynamic>;
+      } else if (otherResp['errors'] is List) {
+        validations = otherResp['errors'] as List<dynamic>;
+      }
 
-        final otherResp = await controller.apiService.applyRequestService(
-          path: '/individuals/${controller.config.sessionId}/verifications/other-documents',
-          data: otherPayload,
-        );
-
-        // Parse business validation results if present: checks, validations or errors
-        List<dynamic>? validations;
-        if (otherResp['checks'] is List) {
-          validations = otherResp['checks'] as List<dynamic>;
-        } else if (otherResp['validations'] is List) {
-          validations = otherResp['validations'] as List<dynamic>;
-        } else if (otherResp['errors'] is List) {
-          validations = otherResp['errors'] as List<dynamic>;
-        }
-
-        if (validations != null && validations.isNotEmpty) {
-          for (final item in validations) {
-            if (item is Map && item['validate'] == false) {
-              final msg = (item['message'] as String?) ?? (item['label'] as String?) ?? '';
-              if (msg.isNotEmpty) {
-                if (mounted) {
-                  setState(() {
-                    _uploadError = msg;
-                    _selectedFile = null;
-                    _uploadProgress = 0;
-                    _displayProgress = 0;
-                  });
-                }
-                return;
+      if (validations != null && validations.isNotEmpty) {
+        for (final item in validations) {
+          if (item is Map && item['validate'] == false) {
+            final msg = (item['message'] as String?) ?? (item['label'] as String?) ?? '';
+            if (msg.isNotEmpty) {
+              if (mounted) {
+                setState(() {
+                  _uploadError = msg;
+                  _selectedFile = null;
+                  _uploadProgress = 0;
+                  _displayProgress = 0;
+                });
               }
+              return;
             }
           }
         }
-      } catch (e) {
-        // Technical error during duplication: keep generic error flow below
       }
 
       final key = (signed['key'] as String?) ?? filename;
@@ -326,14 +322,15 @@ class _ChainedCustomDocumentStepPageState
       if (!startedChainedDocument) {
         controller.goToStep(DataleonFlowStep.success);
       }
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
+      final baseMessage = _lang.startsWith('fr')
+          ? 'Le document n\'a pas pu etre televerse. Veuillez reessayer.'
+          : 'The document could not be uploaded. Please try again.';
       setState(() {
-        _uploadError = _lang.startsWith('fr')
-            ? 'Le document n\'a pas pu etre televerse. Veuillez reessayer.'
-            : 'The document could not be uploaded. Please try again.';
+        _uploadError = '$baseMessage\n($error)';
         _selectedFile = null;
         _uploadProgress = 0;
         _displayProgress = 0;
@@ -354,6 +351,10 @@ class _ChainedCustomDocumentStepPageState
     required String filename,
   }) {
     final request = controller.requestResult;
+    final document = _document;
+    final isCardDocument = document['isCardDocument'] == true ||
+        (document['doc'] is Map &&
+            (document['doc'] as Map)['isCardDocument'] == true);
     final payload = <String, dynamic>{
       'url': '$fileUrl?filename=$filename',
       'disable_auto_save_doc': 'true',
@@ -364,6 +365,7 @@ class _ChainedCustomDocumentStepPageState
       'form_document_type': controller.documentType ?? '',
       'form_document_country': controller.documentCountry ?? '',
       'session_id': _sessionId,
+      'enable_card_detect': isCardDocument.toString(),
       'save_only_response': 'true',
       'request_type': 'webview',
     };

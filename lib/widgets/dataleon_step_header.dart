@@ -32,9 +32,6 @@ class DataleonStepHeader extends StatelessWidget {
 
     final logoUrl = _resolveCustomerAssetUrl(logoRaw);
 
-    debugPrint('Resolved logo raw: $logoRaw');
-    debugPrint('Resolved logo URL: $logoUrl');
-
     final rawLogoHeight = (dash['logoHeight'] as num?)?.toDouble() ??
         (dash['logoAppHeight'] as num?)?.toDouble();
 
@@ -203,7 +200,6 @@ class DataleonStepHeader extends StatelessWidget {
                       );
                     },
                     errorBuilder: (context, error, stackTrace) {
-                      debugPrint('Logo image error: $error');
                       return const SizedBox.shrink();
                     },
                   ),

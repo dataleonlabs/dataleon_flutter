@@ -638,7 +638,7 @@ class DataleonFlowController extends ChangeNotifier {
       try {
         final signed = await _apiService.generateSignedGetUrl(
           objectName: objectKey,
-          bucket: 'yap-assets-customer',
+          bucket: _config.customerAssetsBucket,
         );
         url = signed['signed_url'] as String? ??
             signed['signedUrl'] as String? ??

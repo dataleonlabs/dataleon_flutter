@@ -41,8 +41,6 @@ class _CameraPermissionStepPageState extends State<CameraPermissionStepPage> {
     final imageKey =
         (adConfig['cameraActivationImageKey'] as String?)?.trim() ?? '';
 
-    debugPrint('cameraActivationImageKey: $imageKey');
-
     if (imageKey.isEmpty) return;
 
     if (mounted) {
@@ -62,13 +60,11 @@ class _CameraPermissionStepPageState extends State<CameraPermissionStepPage> {
     try {
       final signed = await widget.controller.apiService.generateSignedGetUrl(
         objectName: imageKey,
-        bucket: 'yap-assets-customer',
+        bucket: widget.controller.config.customerAssetsBucket,
       );
 
       final signedUrl =
           signed['signedUrl'] as String? ?? signed['url'] as String?;
-
-      debugPrint('Camera activation image signed URL: $signedUrl');
 
       if (!mounted) return;
 
@@ -77,8 +73,6 @@ class _CameraPermissionStepPageState extends State<CameraPermissionStepPage> {
         _cameraImageLoading = false;
       });
     } catch (e) {
-      debugPrint('Camera activation image error: $e');
-
       if (!mounted) return;
 
       setState(() {
@@ -234,8 +228,6 @@ class _CameraPermissionStepPageState extends State<CameraPermissionStepPage> {
                                     webHtmlElementStrategy:
                                         WebHtmlElementStrategy.prefer,
                                     errorBuilder: (_, error, ___) {
-                                      debugPrint(
-                                          'Camera image display error: $error');
                                       return _buildCameraFallback(
                                           uniformColor, accentColor);
                                     },

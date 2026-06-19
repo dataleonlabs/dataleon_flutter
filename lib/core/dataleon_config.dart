@@ -6,6 +6,7 @@ class DataleonConfig {
   final String? uploadBucket;
   final String appVersion;
   final String? initialLanguage;
+  final String customerAssetsBucket;
 
   DataleonConfig({
     required this.sessionId,
@@ -15,7 +16,11 @@ class DataleonConfig {
     this.uploadBucket,
     this.appVersion = '2.0.0',
     this.initialLanguage,
-  });
+    this.customerAssetsBucket = 'yap-assets-customer',
+  }) : assert(
+          apiBaseUrl == null || apiBaseUrl.isEmpty || apiBaseUrl.startsWith('https://'),
+          'apiBaseUrl must use HTTPS',
+        );
 
   String get sessionToken => token;
 
@@ -25,6 +30,8 @@ class DataleonConfig {
     }
     return accountTenant;
   }
+
+  void dispose() {}
 
   /// Base URL for API calls.
   String get baseUrl {

@@ -3,8 +3,8 @@ import 'package:dataleon_flutter/flow/dataleon_flow_step.dart';
 
 void main() {
   group('DataleonFlowStep', () {
-    test('has 13 values', () {
-      expect(DataleonFlowStep.values.length, 13);
+    test('has 14 values', () {
+      expect(DataleonFlowStep.values.length, 14);
     });
 
     test('values are in expected order', () {
@@ -17,6 +17,7 @@ void main() {
         DataleonFlowStep.documentType,
         DataleonFlowStep.documentCountry,
         DataleonFlowStep.document,
+        DataleonFlowStep.chainedDocumentIntro,
         DataleonFlowStep.chainedCustomDocument,
         DataleonFlowStep.selfie,
         DataleonFlowStep.review,
