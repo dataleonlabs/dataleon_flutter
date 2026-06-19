@@ -21,19 +21,19 @@
     },
     {
       "name": "camera",
-      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/camera-0.12.0+1",
+      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/camera-0.11.0+2",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.3"
     },
     {
       "name": "camera_android_camerax",
-      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/camera_android_camerax-0.7.2",
+      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/camera_android_camerax-0.6.30",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
     {
       "name": "camera_avfoundation",
-      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/camera_avfoundation-0.10.1",
+      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/camera_avfoundation-0.9.23+2",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -485,7 +485,7 @@
       "name": "dataleon_flutter",
       "rootUri": "../",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "3.7"
     }
   ],
   "generator": "pub",

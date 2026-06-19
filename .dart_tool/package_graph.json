@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "dataleon_flutter",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "dependencies": [
         "camera",
         "file_picker",
@@ -128,7 +128,7 @@
     },
     {
       "name": "camera",
-      "version": "0.12.0+1",
+      "version": "0.11.0+2",
       "dependencies": [
         "camera_android_camerax",
         "camera_avfoundation",
@@ -499,7 +499,7 @@
     },
     {
       "name": "camera_avfoundation",
-      "version": "0.10.1",
+      "version": "0.9.23+2",
       "dependencies": [
         "camera_platform_interface",
         "flutter",
@@ -508,7 +508,7 @@
     },
     {
       "name": "camera_android_camerax",
-      "version": "0.7.2",
+      "version": "0.6.30",
       "dependencies": [
         "async",
         "camera_platform_interface",

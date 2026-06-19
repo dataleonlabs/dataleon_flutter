@@ -1,3 +1,7 @@
+## 2.0.3
+
+- Compatibilité Flutter 3.29 (Dart 3.7) : `camera` rétrogradé en `^0.11.0+2`, contraintes `environment` ajustées (`sdk >=3.7.0`, `flutter >=3.29.0`).
+
 ## 2.0.2
 
 - Fix: upload des documents chaînés (`other-documents`) — correction du mapping `document_type`/`document_subtype` qui provoquait une erreur 422, alignement sur le flow web.
