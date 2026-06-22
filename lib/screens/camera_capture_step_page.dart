@@ -219,9 +219,11 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         orElse: () => cameras.first,
       );
 
+      // Front (selfie/face) camera at 1280x720, back (documents) at 1920x1080.
+      final preset = _isFace ? ResolutionPreset.high : ResolutionPreset.veryHigh;
       final ctrl = CameraController(
         cam,
-        ResolutionPreset.high,
+        preset,
         enableAudio: false,
       );
       await ctrl.initialize();

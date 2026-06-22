@@ -1,3 +1,8 @@
+## 2.0.4
+
+- Caméra : capture des documents (caméra arrière) en 1920x1080 (`ResolutionPreset.veryHigh`) pour une meilleure netteté ; le selfie (caméra avant) reste en 1280x720 (`ResolutionPreset.high`).
+- Fix: erreur de syntaxe (`!if`) dans `outro_step_page.dart` qui empêchait la compilation.
+
 ## 2.0.3
 
 - Compatibilité Flutter 3.29 (Dart 3.7) : `camera` rétrogradé en `^0.11.0+2`, contraintes `environment` ajustées (`sdk >=3.7.0`, `flutter >=3.29.0`).
