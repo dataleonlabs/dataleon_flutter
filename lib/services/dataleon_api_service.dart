@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 
 import '../core/dataleon_config.dart';
@@ -36,6 +38,59 @@ class DataleonApiService {
         'X-Webview-Release': _webviewRelease,
         'X-App-Version': config.appVersion,
       });
+
+  /// Runtime platform name reported via the informative `X-Platform` header.
+  String get _platform {
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.macOS:
+        return 'macos';
+      case TargetPlatform.windows:
+        return 'windows';
+      case TargetPlatform.linux:
+        return 'linux';
+      case TargetPlatform.fuchsia:
+        return 'fuchsia';
+    }
+  }
+
+  /// Headers for the public branding endpoint: no auth / token / tenant /
+  /// session, only informative headers.
+  Map<String, String> get _publicHeaders => _withAccountTenant({
+        'Accept': 'application/json',
+        'X-App-Version': config.appVersion,
+        'X-Platform': _platform,
+        'X-Webview-Version': _webviewVersion,
+        'X-Webview-Release': _webviewRelease,
+      });
+
+  /// Fetch the public dashboard branding config used to paint the loading
+  /// screen before any authenticated call.
+  ///
+  /// Public endpoint: sends no auth/token/session headers, only informative
+  /// ones (see [_publicHeaders]).
+  Future<Map<String, dynamic>> fetchChartConfig() async {
+    final url = Uri.parse(
+      '${config.baseUrl}/individuals/${config.sessionId}/config/chart',
+    );
+
+    final response = await _client.get(url, headers: _publicHeaders);
+
+    if (response.statusCode != 200) {
+      throw DataleonApiException(
+        'Failed to fetch chart config',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final body = jsonDecode(response.body);
+    if (body is Map<String, dynamic>) return body;
+    return const <String, dynamic>{};
+  }
 
   /// Fetch the request configuration and progress from the backend.
   /// Equivalent to the React fetchRequestConfig.

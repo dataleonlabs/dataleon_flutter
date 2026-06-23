@@ -168,6 +168,12 @@ class DataleonLocalizations {
 
   // ========================== FRENCH ==========================
   static const _fr = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'Chargement de la configuration…',
+      'request': 'Préparation de votre dossier…',
+      'theme': 'Application du thème…',
+      'ready': 'Presque prêt…',
+    },
     'intro': {
       'preambule':
           '{{appName}} utilise la plateforme Dataleon sécurisée pour automatiser la vérification des pièces d\'identité en ',
@@ -330,6 +336,12 @@ class DataleonLocalizations {
 
   // ========================== ENGLISH ==========================
   static const _en = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'Loading configuration…',
+      'request': 'Preparing your file…',
+      'theme': 'Applying theme…',
+      'ready': 'Almost ready…',
+    },
     'intro': {
       'preambule':
           '{{appName}} uses the secure Dataleon platform to automate identity document verification in ',
@@ -488,6 +500,12 @@ class DataleonLocalizations {
 
   // ========================== SPANISH ==========================
   static const _es = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'Cargando la configuración…',
+      'request': 'Preparando su expediente…',
+      'theme': 'Aplicando el tema…',
+      'ready': 'Casi listo…',
+    },
     'intro': {
       'preambule':
           '{{appName}} utiliza la plataforma segura Dataleon para automatizar la verificación de documentos de identidad en ',
@@ -597,6 +615,12 @@ class DataleonLocalizations {
 
   // ========================== ARABIC ==========================
   static const _ar = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'جارٍ تحميل الإعدادات…',
+      'request': 'جارٍ تحضير ملفك…',
+      'theme': 'جارٍ تطبيق السمة…',
+      'ready': 'جاهز تقريبًا…',
+    },
     'intro': {
       'preambule':
           '{{appName}} يستخدم منصة Dataleon الآمنة لأتمتة التحقق من وثائق الهوية في ',
@@ -679,6 +703,12 @@ class DataleonLocalizations {
 
   // ========================== ITALIAN ==========================
   static const _it = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'Caricamento della configurazione…',
+      'request': 'Preparazione del tuo fascicolo…',
+      'theme': 'Applicazione del tema…',
+      'ready': 'Quasi pronto…',
+    },
     'intro': {
       'preambule':
           '{{appName}} utilizza la piattaforma sicura Dataleon per automatizzare la verifica dei documenti d\'identità in ',
@@ -765,6 +795,12 @@ class DataleonLocalizations {
 
   // ========================== PORTUGUESE ==========================
   static const _pt = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'A carregar a configuração…',
+      'request': 'A preparar o seu processo…',
+      'theme': 'A aplicar o tema…',
+      'ready': 'Quase pronto…',
+    },
     'intro': {
       'preambule':
           '{{appName}} utiliza a plataforma segura Dataleon para automatizar a verificação de documentos de identidade em ',
@@ -851,6 +887,12 @@ class DataleonLocalizations {
 
   // ========================== GERMAN ==========================
   static const _de = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'Konfiguration wird geladen…',
+      'request': 'Ihre Datei wird vorbereitet…',
+      'theme': 'Design wird angewendet…',
+      'ready': 'Fast fertig…',
+    },
     'intro': {
       'preambule':
           '{{appName}} nutzt die sichere Dataleon-Plattform zur automatisierten Überprüfung von Ausweisdokumenten in ',
@@ -938,6 +980,12 @@ class DataleonLocalizations {
 
   // ========================== DUTCH ==========================
   static const _nl = <String, dynamic>{
+    'loadingScreen': {
+      'content': 'Configuratie laden…',
+      'request': 'Uw dossier voorbereiden…',
+      'theme': 'Thema toepassen…',
+      'ready': 'Bijna klaar…',
+    },
     'intro': {
       'preambule':
           '{{appName}} gebruikt het beveiligde Dataleon-platform om de verificatie van identiteitsdocumenten te automatiseren in ',

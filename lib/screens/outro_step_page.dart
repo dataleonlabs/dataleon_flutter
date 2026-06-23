@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../flow/dataleon_flow_controller.dart';
 import '../i18n/dataleon_localizations.dart';
@@ -22,10 +21,8 @@ class OutroStepPage extends StatefulWidget {
 
 class _OutroStepPageState extends State<OutroStepPage> {
   bool _submitting = true;
-  bool _submitted = false;
   String? _errorMessage;
-  Timer? _redirectTimer;
-  int? _remainingSeconds;
+  
 
   DataleonFlowController get _controller => widget.controller;
 
@@ -44,7 +41,7 @@ class _OutroStepPageState extends State<OutroStepPage> {
 
   @override
   void dispose() {
-    _redirectTimer?.cancel();
+    
     super.dispose();
   }
 
@@ -63,9 +60,7 @@ class _OutroStepPageState extends State<OutroStepPage> {
 
       setState(() {
         _submitting = false;
-        _submitted = true;
       });
-      _startRedirectIfNeeded();
     } catch (error) {
       if (!mounted) {
         return;
@@ -150,70 +145,6 @@ class _OutroStepPageState extends State<OutroStepPage> {
     return payload;
   }
 
-  void _startRedirectIfNeeded() {
-    final redirectEnabled =
-        _dashboardConfiguration['enableRedirection'] == true;
-    final redirectUrl = _dashboardConfiguration['configUrlRedirect'] as String?;
-    final delay = (_dashboardConfiguration['redirectionTime'] as num?)?.toInt();
-
-    if (!redirectEnabled || redirectUrl == null || redirectUrl.isEmpty) {
-      return;
-    }
-
-    final finalRedirectUri = _buildRedirectUri(redirectUrl);
-    if (finalRedirectUri == null) {
-      return;
-    }
-
-    final seconds = delay == null || delay <= 0 ? 5 : delay;
-    setState(() {
-      _remainingSeconds = seconds;
-    });
-
-    _redirectTimer?.cancel();
-    _redirectTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      final remaining = _remainingSeconds;
-      if (remaining == null) {
-        timer.cancel();
-        return;
-      }
-
-      if (remaining <= 1) {
-        timer.cancel();
-        await launchUrl(finalRedirectUri, mode: LaunchMode.externalApplication);
-        return;
-      }
-
-      if (mounted) {
-        setState(() {
-          _remainingSeconds = remaining - 1;
-        });
-      }
-    });
-  }
-
-  Uri? _buildRedirectUri(String redirectUrl) {
-    final parsedUri = Uri.tryParse(redirectUrl);
-    if (parsedUri == null) {
-      return null;
-    }
-
-    final queryParameters = <String, String>{
-      ...parsedUri.queryParameters,
-    };
-
-    final sessionId = _controller.config.sessionId;
-    if (sessionId.isNotEmpty) {
-      queryParameters['id'] = sessionId;
-    }
-
-    final sourceId = _controller.requestResult['source_id'];
-    if (sourceId != null && '$sourceId'.isNotEmpty) {
-      queryParameters['source_id'] = '$sourceId';
-    }
-
-    return parsedUri.replace(queryParameters: queryParameters);
-  }
 
   String _wcString(String key) {
     final val = _controller.webviewConfig[key];
@@ -367,19 +298,7 @@ class _OutroStepPageState extends State<OutroStepPage> {
                     ),
                   ),
                 ),
-              if (_remainingSeconds != null && _submitted) ...[
-                const SizedBox(height: 14),
-                Center(
-                  child: Text(
-                    _t('outroStep.redirect',
-                        params: {'seconds': '$_remainingSeconds'}),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF9CA3AF),
-                    ),
-                  ),
-                ),
-              ],
+              
               const Spacer(),
               // ---- buttons ----
               if (_errorMessage != null)

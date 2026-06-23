@@ -620,6 +620,188 @@ void main() {
     });
   });
 
+  group('sanitizeLogoUrl', () {
+    test('accepts https URLs', () {
+      createController();
+      expect(
+        DataleonFlowController.sanitizeLogoUrl('https://cdn.example.com/l.png'),
+        'https://cdn.example.com/l.png',
+      );
+    });
+
+    test('accepts http URLs', () {
+      createController();
+      expect(
+        DataleonFlowController.sanitizeLogoUrl('http://example.com/l.png'),
+        'http://example.com/l.png',
+      );
+    });
+
+    test('rejects javascript: scheme', () {
+      createController();
+      expect(
+        DataleonFlowController.sanitizeLogoUrl('javascript:alert(1)'),
+        isNull,
+      );
+    });
+
+    test('rejects data: scheme', () {
+      createController();
+      expect(
+        DataleonFlowController.sanitizeLogoUrl('data:image/png;base64,AAAA'),
+        isNull,
+      );
+    });
+
+    test('resolves relative paths against the customer-assets bucket', () {
+      createController();
+      expect(
+        DataleonFlowController.sanitizeLogoUrl('logos/acme.png'),
+        'https://customer-assets.eu-west-1.dataleon.ai/logos/acme.png',
+      );
+    });
+
+    test('returns null for null/empty', () {
+      createController();
+      expect(DataleonFlowController.sanitizeLogoUrl(null), isNull);
+      expect(DataleonFlowController.sanitizeLogoUrl('   '), isNull);
+    });
+  });
+
+  group('normalizeLanguage', () {
+    test('maps ISO3 to ISO2', () {
+      createController();
+      expect(DataleonFlowController.normalizeLanguage('eng'), 'en');
+      expect(DataleonFlowController.normalizeLanguage('fra'), 'fr');
+      expect(DataleonFlowController.normalizeLanguage('deu'), 'de');
+      expect(DataleonFlowController.normalizeLanguage('nld'), 'nl');
+    });
+
+    test('passes through ISO2 codes (lowercased)', () {
+      createController();
+      expect(DataleonFlowController.normalizeLanguage('EN'), 'en');
+      expect(DataleonFlowController.normalizeLanguage('pt'), 'pt');
+    });
+  });
+
+  group('loading branding / chart config', () {
+    test('chart is unresolved before fetchConfig', () {
+      createController();
+      expect(controller.isChartResolved, isFalse);
+      expect(controller.brandingLogoUrl, isNull);
+      expect(controller.brandingAppName, isNull);
+      expect(controller.brandingPrincipalColor, isNull);
+    });
+
+    test('stores sanitized branding and early language from chart', () async {
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/config/chart')) {
+          return http.Response(
+            jsonEncode({
+              'applicationName': 'Acme',
+              'principalColor': '#123456',
+              'logoURLApp': 'https://cdn.example.com/logo.png',
+              'languageApp': 'eng',
+            }),
+            200,
+          );
+        }
+        // request/contents config
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {}},
+          }),
+          200,
+        );
+      });
+
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+
+      await controller.fetchConfig();
+
+      expect(controller.isChartResolved, isTrue);
+      expect(controller.brandingAppName, 'Acme');
+      expect(controller.brandingPrincipalColor, '#123456');
+      expect(controller.brandingLogoUrl, 'https://cdn.example.com/logo.png');
+      // Definitive language unset by request config → keeps the chart language.
+      expect(controller.languageCode, 'en');
+      expect(controller.currentStep, DataleonFlowStep.welcome);
+    });
+
+    test('resolves the chart (exits spinner) even when chart call fails',
+        () async {
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/config/chart')) {
+          return http.Response('Server Error', 500);
+        }
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {}},
+          }),
+          200,
+        );
+      });
+
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+
+      await controller.fetchConfig();
+
+      expect(controller.isChartResolved, isTrue);
+      expect(controller.brandingLogoUrl, isNull);
+      expect(controller.brandingPrincipalColor, isNull);
+      expect(controller.currentStep, DataleonFlowStep.welcome);
+    });
+
+    test('drops unsafe logo URLs from the chart config', () async {
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/config/chart')) {
+          return http.Response(
+            jsonEncode({'logoURLApp': 'javascript:alert(1)'}),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {}},
+          }),
+          200,
+        );
+      });
+
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+
+      await controller.fetchConfig();
+
+      expect(controller.brandingLogoUrl, isNull);
+    });
+
+    test('request config language overrides the chart language', () async {
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/config/chart')) {
+          return http.Response(jsonEncode({'languageApp': 'fra'}), 200);
+        }
+        return http.Response(
+          jsonEncode({
+            'result': {
+              'metadata': {'language': 'eng'},
+            },
+          }),
+          200,
+        );
+      });
+
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+
+      await controller.fetchConfig();
+
+      expect(controller.languageCode, 'en');
+    });
+  });
+
   group('submitStepData', () {
     test('returns response on success', () async {
       final client = MockClient((request) async {

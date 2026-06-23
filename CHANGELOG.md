@@ -1,3 +1,8 @@
+## 2.0.5
+
+- Écran de chargement : un message s'affiche dès le début (« Chargement de la configuration… ») et change instantanément à chaque étape (`content → request → theme → ready`) ; suppression de tous les délais de 500 ms entre les messages.
+- i18n : correction du texte FR `loadingScreen.content` (placeholder cassé).
+
 ## 2.0.4
 
 - Caméra : capture des documents (caméra arrière) en 1920x1080 (`ResolutionPreset.veryHigh`) pour une meilleure netteté ; le selfie (caméra avant) reste en 1280x720 (`ResolutionPreset.high`).

@@ -62,6 +62,74 @@ void main() {
       });
     });
 
+    group('fetchChartConfig', () {
+      test('GETs the public chart endpoint with informative headers only',
+          () async {
+        config = DataleonConfig(
+          sessionId: 'test-session-id',
+          token: 'jwt-abc-123',
+          accountTenant: 'tenant-42',
+          appVersion: '2.0.4',
+        );
+        final client = MockClient((request) async {
+          expect(request.method, 'GET');
+          expect(
+            request.url.path,
+            '/individuals/test-session-id/config/chart',
+          );
+          // Public: no auth / token / session / tenant headers.
+          expect(request.headers.containsKey('Authorization'), isFalse);
+          expect(request.headers.containsKey('X-Trax'), isFalse);
+          expect(request.headers.containsKey('X-Account-Tenant'), isFalse);
+          // Only informative headers.
+          expect(request.headers['Accept'], 'application/json');
+          expect(request.headers['X-App-Version'], '2.0.4');
+          expect(request.headers.containsKey('X-Platform'), isTrue);
+          expect(request.headers.containsKey('X-Webview-Version'), isTrue);
+          expect(request.headers.containsKey('X-Webview-Release'), isTrue);
+
+          return http.Response(
+            jsonEncode({
+              'applicationName': 'Acme',
+              'principalColor': '#FF0000',
+              'logoURLApp': 'https://cdn.example.com/logo.png',
+              'languageApp': 'eng',
+            }),
+            200,
+          );
+        });
+
+        final service = createService(client);
+        final result = await service.fetchChartConfig();
+
+        expect(result['applicationName'], 'Acme');
+        expect(result['principalColor'], '#FF0000');
+      });
+
+      test('throws on non-200 status', () async {
+        final client = MockClient((request) async {
+          return http.Response('Not Found', 404);
+        });
+
+        final service = createService(client);
+        expect(
+          () => service.fetchChartConfig(),
+          throwsA(isA<DataleonApiException>()
+              .having((e) => e.statusCode, 'statusCode', 404)),
+        );
+      });
+
+      test('returns empty map when body is not a JSON object', () async {
+        final client = MockClient((request) async {
+          return http.Response('[]', 200);
+        });
+
+        final service = createService(client);
+        final result = await service.fetchChartConfig();
+        expect(result, isEmpty);
+      });
+    });
+
     group('applyRequestService', () {
       test('posts to correct path with gateway headers', () async {
         final client = MockClient((request) async {
