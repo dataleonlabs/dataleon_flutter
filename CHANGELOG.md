@@ -1,3 +1,9 @@
+## 2.0.6
+
+- Écran de chargement : nouveau design (petit loader pendant l'appel `/config/chart`, puis barre de progression qui ne se remplit qu'une seule fois) et messages d'étape affichés immédiatement.
+- Outro : suppression de la redirection (nettoyage du code mort `_buildRedirectUri` et de l'import `url_launcher` inutilisé).
+- `appVersion` par défaut passe à `2.0.6`.
+
 ## 2.0.5
 
 - Écran de chargement : un message s'affiche dès le début (« Chargement de la configuration… ») et change instantanément à chaque étape (`content → request → theme → ready`) ; suppression de tous les délais de 500 ms entre les messages.

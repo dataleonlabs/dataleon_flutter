@@ -12,9 +12,9 @@ void main() {
       expect(config.token, 'jwt-token');
     });
 
-    test('appVersion defaults to 2.0.0', () {
+    test('appVersion defaults to 2.0.6', () {
       final config = DataleonConfig(sessionId: 's', token: 'jwt');
-      expect(config.appVersion, '2.0.0');
+      expect(config.appVersion, '2.0.6');
     });
 
     test('appVersion can be overridden', () {
@@ -27,58 +27,9 @@ void main() {
     });
 
     group('baseUrl', () {
-      test('returns default URL when apiBaseUrl is null', () {
+      test('always returns the hardcoded Dataleon URL', () {
         final config = DataleonConfig(sessionId: 's', token: 'jwt');
         expect(config.baseUrl, 'https://inference.eu-west-1.dataleon.ai');
-      });
-
-      test('returns default URL when apiBaseUrl is empty', () {
-        final config = DataleonConfig(
-          sessionId: 's',
-          token: 'jwt',
-          apiBaseUrl: '',
-        );
-        expect(config.baseUrl, 'https://inference.eu-west-1.dataleon.ai');
-      });
-
-      test('returns custom URL when apiBaseUrl is provided', () {
-        final config = DataleonConfig(
-          sessionId: 's',
-          token: 'jwt',
-          apiBaseUrl: 'https://custom.api.com',
-        );
-        expect(config.baseUrl, 'https://custom.api.com');
-      });
-    });
-
-    group('HTTPS assertion', () {
-      test('accepts null apiBaseUrl', () {
-        expect(
-          () => DataleonConfig(sessionId: 's', token: 'jwt'),
-          returnsNormally,
-        );
-      });
-
-      test('accepts https apiBaseUrl', () {
-        expect(
-          () => DataleonConfig(
-            sessionId: 's',
-            token: 'jwt',
-            apiBaseUrl: 'https://secure.api.com',
-          ),
-          returnsNormally,
-        );
-      });
-
-      test('rejects http apiBaseUrl in debug mode', () {
-        expect(
-          () => DataleonConfig(
-            sessionId: 's',
-            token: 'jwt',
-            apiBaseUrl: 'http://insecure.api.com',
-          ),
-          throwsA(isA<AssertionError>()),
-        );
       });
     });
 

@@ -34,7 +34,7 @@ class ClientHomePage extends StatefulWidget {
 
 class _ClientHomePageState extends State<ClientHomePage> {
   String _lastResult = 'No verification started yet';
-  static const String _accountTenant = 'YOUR_ACCOUNT_TENANT'; // Optional, only if your account uses tenants.
+  static const String _accountTenant = 'YOUR_TENANT_ID'; // Optional, only if your account uses tenants.
 
   // Read ?lang= from the URL on web (e.g. https://…/?lang=en)
   static String? get _initialLanguage =>

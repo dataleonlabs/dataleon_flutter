@@ -902,7 +902,7 @@ class _ChainedCustomDocumentStepPageState
                         Expanded(
                           child: _buildModeButton(
                             label: _lang.startsWith('fr')
-                                ? 'Televerser le document'
+                                ? 'Importer le document'
                                 : 'Upload document',
                             icon: Icons.cloud_upload_outlined,
                             isActive:
@@ -1090,7 +1090,7 @@ class _ChainedCustomDocumentStepPageState
                   children: [
                     Text(
                       _lang.startsWith('fr')
-                          ? 'Televerser le document'
+                          ? 'Importer le document'
                           : 'Upload document',
                       style: const TextStyle(
                         fontSize: 14,

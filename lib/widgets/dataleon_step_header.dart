@@ -8,10 +8,12 @@ class DataleonStepHeader extends StatelessWidget {
     super.key,
     required this.controller,
     this.onBack,
+    this.onClose,
   });
 
   final DataleonFlowController controller;
   final VoidCallback? onBack;
+  final VoidCallback? onClose;
 
   static const String _customerAssetsBaseUrl =
       'https://customer-assets.eu-west-1.dataleon.ai';
@@ -163,7 +165,7 @@ class DataleonStepHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 14, 28, 8),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
             children: [
               if (onBack != null)
                 InkWell(
@@ -204,6 +206,19 @@ class DataleonStepHeader extends StatelessWidget {
                     },
                   ),
                 ),
+              const Expanded(child: SizedBox()),
+              InkWell(
+                onTap: onClose ?? controller.cancel,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(
+                    Icons.close,
+                    color: clientColor,
+                    size: 22,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
