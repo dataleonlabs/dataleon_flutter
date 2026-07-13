@@ -212,6 +212,44 @@ class DataleonFlowController extends ChangeNotifier {
     return const <String, dynamic>{};
   }
 
+  /// Identity fields appended to every capture (POST .../capture) body.
+  ///
+  /// `request_id`, `account_id` and `workspace_id` come straight from the
+  /// request config response ([requestResult]); `mode` is derived from the
+  /// workspace `kycIndividualFormType`. Only keys that resolve to a value are
+  /// included, so absent fields are simply not sent.
+  Map<String, dynamic> get captureRequestFields {
+    final result = requestResult;
+    final requestId = result['id'] as String?;
+    final accountId = result['accountId'] as String?;
+    final workspaceId = result['workspaceId'] as String?;
+    final mode = _kycModeFromFormType(
+      dashboardConfiguration['kycIndividualFormType'] as String?,
+    );
+    return <String, dynamic>{
+      if (requestId != null && requestId.isNotEmpty) 'request_id': requestId,
+      if (accountId != null && accountId.isNotEmpty) 'account_id': accountId,
+      if (workspaceId != null && workspaceId.isNotEmpty)
+        'workspace_id': workspaceId,
+      if (mode.isNotEmpty) 'mode': mode,
+    };
+  }
+
+  /// Map the workspace `kycIndividualFormType` to the capture `mode`:
+  /// upload → simple, image → advanced, video → full (default advanced).
+  String _kycModeFromFormType(String? formType) {
+    switch (formType) {
+      case 'upload':
+        return 'simple';
+      case 'image':
+        return 'advanced';
+      case 'video':
+        return 'full';
+      default:
+        return 'advanced';
+    }
+  }
+
   List<Map<String, dynamic>> get formSteps {
     final form = webviewConfig['form'];
     if (form is! List) {

@@ -314,6 +314,9 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         'overlay_y': overlayY,
         'overlay_w': overlayW,
         'overlay_h': overlayH,
+        // request_id / account_id / workspace_id / mode — centralized in the
+        // controller and appended to every capture (recto, verso, face/selfie).
+        ..._ctrl.captureRequestFields,
       };
 
       final data = await _ctrl.apiService.sendCaptureFrame(payload: payload);

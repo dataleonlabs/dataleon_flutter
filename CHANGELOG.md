@@ -1,3 +1,8 @@
+## 2.0.7
+
+- Captures (`POST /individuals/:id/capture`) : ajout de quatre champs au body de chaque capture (recto, verso, face/selfie) — `request_id`, `account_id`, `workspace_id` (repris de la réponse `/config` : `result.id`, `result.accountId`, `result.workspaceId`) et `mode` dérivé de `dashboardConfiguration.kycIndividualFormType` (`upload → simple`, `image → advanced`, `video → full`, défaut `advanced`). Construction centralisée dans `captureRequestFields` ; les champs ne sont envoyés que s'ils ont une valeur.
+- `appVersion` par défaut passe à `2.0.7`.
+
 ## 2.0.6
 
 - Écran de chargement : nouveau design (petit loader pendant l'appel `/config/chart`, puis barre de progression qui ne se remplit qu'une seule fois) et messages d'étape affichés immédiatement.
