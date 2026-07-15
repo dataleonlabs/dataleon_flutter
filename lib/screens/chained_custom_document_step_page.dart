@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../flow/dataleon_flow_controller.dart';
@@ -25,6 +26,8 @@ class ChainedCustomDocumentStepPage extends StatefulWidget {
 class _ChainedCustomDocumentStepPageState
     extends State<ChainedCustomDocumentStepPage> {
   final TextEditingController _searchController = TextEditingController();
+  late final TapGestureRecognizer _skipOptionalRecognizer =
+      TapGestureRecognizer()..onTap = _handleSkipOptionalDocument;
   Timer? _loadingDotsTimer;
   Timer? _progressAnimationTimer;
   PlatformFile? _selectedFile;
@@ -74,6 +77,7 @@ class _ChainedCustomDocumentStepPageState
       ));
 
   bool get _hasProposedOptions => _options.isNotEmpty;
+  bool get _isOptionalDocument => _document['required'] == false;
   bool get _uploadEnabled => _document['uploadEnabled'] == true;
   bool get _uploadOnlyMode => _document['uploadOnlyMode'] == true;
   bool get _canUseUpload => _uploadOnlyMode || _uploadEnabled;
@@ -104,6 +108,7 @@ class _ChainedCustomDocumentStepPageState
   @override
   void dispose() {
     _searchController.dispose();
+    _skipOptionalRecognizer.dispose();
     _loadingDotsTimer?.cancel();
     _progressAnimationTimer?.cancel();
     super.dispose();
@@ -886,11 +891,16 @@ class _ChainedCustomDocumentStepPageState
                   ),
                 ),
               ),
+              if (_isOptionalDocument &&
+                  _isSelectionResolved &&
+                  !_showOptionPicker &&
+                  (_canUseUpload || _canUseCamera))
+                _buildSkipOptionalNotice(),
               if (_isSelectionResolved &&
                   !_showOptionPicker &&
                   (_canUseUpload || _canUseCamera))
                 Container(
-                  margin: const EdgeInsets.only(top: 12),
+                  margin: EdgeInsets.only(top: _isOptionalDocument ? 6 : 12),
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF3F4F6),
@@ -944,6 +954,71 @@ class _ChainedCustomDocumentStepPageState
           ],                // outer Column.children
         ),                  // outer Column
       ),                    // SafeArea
+    );
+  }
+
+  void _handleSkipOptionalDocument() {
+    if (_isUploading) {
+      return;
+    }
+
+    final selectedOptionId =
+        controller.selectedChainedDocumentOption?['id']?.toString();
+    final startedChainedDocument = controller.completeCurrentDocumentAndContinue(
+      completedSelectedOptionId: selectedOptionId,
+    );
+    if (!startedChainedDocument) {
+      controller.goToStep(DataleonFlowStep.success);
+    }
+  }
+
+  Widget _buildSkipOptionalNotice() {
+    final isFrench = _lang.startsWith('fr');
+    final message = isFrench
+        ? 'Ce document est optionnel, '
+        : 'This document is optional, ';
+    final action = isFrench ? 'cliquez ici pour passer' : 'click here to skip';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      width: double.infinity,
+      child: Text.rich(
+        TextSpan(
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.35,
+            color: Color(0xFF8B8B8B),
+          ),
+          children: [
+            TextSpan(text: message),
+            TextSpan(
+              text: action,
+              style: TextStyle(
+                color: _accentColor,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+                decorationColor: _accentColor,
+              ),
+              recognizer: _skipOptionalRecognizer,
+            ),
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 3),
+                child: GestureDetector(
+                  onTap: _handleSkipOptionalDocument,
+                  child: Icon(
+                    Icons.arrow_forward,
+                    size: 13,
+                    color: _accentColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.left,
+      ),
     );
   }
 

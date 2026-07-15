@@ -629,11 +629,13 @@ void main() {
       );
     });
 
-    test('accepts http URLs', () {
+    test('upgrades http URLs to https', () {
       createController();
+      // sanitizeLogoUrl réécrit délibérément http:// en https:// : le cleartext
+      // est bloqué par défaut sur les plateformes modernes.
       expect(
         DataleonFlowController.sanitizeLogoUrl('http://example.com/l.png'),
-        'http://example.com/l.png',
+        'https://example.com/l.png',
       );
     });
 
