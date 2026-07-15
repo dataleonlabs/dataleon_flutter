@@ -1,3 +1,12 @@
+## 2.0.9
+
+- Tests : correction d'un interblocage dans `dataleon_loading_page_test.dart`. `fetchConfig()` se termine par un `Future.delayed` de 900 ms ; l'attendre directement dans `testWidgets` (zone `FakeAsync`, dont l'horloge n'avance que sur `pump()`) figeait le test jusqu'à son timeout de 10 minutes. L'appel passe par `tester.runAsync()`. La suite passe de ~17 min à ~16 s, et 3 échecs jusque-là masqués par ce timeout sont redevenus visibles.
+- Tests : couverture du skip des documents optionnels (`required` valant `false`, `true`, absent ou mal typé).
+- Tests : `appVersion` et `sanitizeLogoUrl` alignés sur le comportement réel du code (`http://` est délibérément réécrit en `https://`).
+- CI : ajout d'un workflow GitHub Actions `security` — Trivy et OSV-Scanner sur `pubspec.lock`, gitleaks sur l'historique, analyse statique, tests, `pub publish --dry-run`, et DAST (Nuclei + OWASP ZAP) sur l'app d'exemple construite en web.
+- README : la contrainte de dépendance affichée suit la version courante.
+- `appVersion` par défaut passe à `2.0.9`.
+
 ## 2.0.8
 
 - Documents enchaînés : les documents non obligatoires (`required: false` dans `kycCustomDocuments`) affichent un texte « Ce document est optionnel, cliquez ici pour passer → » juste au-dessus des boutons Importer/Camera. Le lien souligné passe au document suivant de la chaîne (ou à l'écran de succès s'il n'y en a plus) sans téléversement. Les documents sans champ `required`, ou avec `required: true`, restent obligatoires et leur mise en page est inchangée.

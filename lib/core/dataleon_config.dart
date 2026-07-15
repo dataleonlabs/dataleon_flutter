@@ -12,7 +12,7 @@ class DataleonConfig {
     required this.token,
     this.accountTenant,
     this.uploadBucket,
-    this.appVersion = '2.0.8',
+    this.appVersion = '2.0.9',
     this.initialLanguage,
     this.customerAssetsBucket = 'yap-assets-customer',
   });
