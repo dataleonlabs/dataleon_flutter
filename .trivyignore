@@ -1,0 +1,7 @@
+# Trivy ignore file
+# Un CVE / ID par ligne pour suppimer un finding accepté (avec justification + date).
+# Exemple :
+#   CVE-2024-XXXXX   # accepté le 2026-07-16 — non exploitable dans notre contexte (pas d'exposition réseau)
+#
+# Laisser vide si aucune exception n'est acceptée : le fichier doit exister
+# car le workflow le référence via `trivyignores: .trivyignore`.

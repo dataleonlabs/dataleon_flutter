@@ -75,18 +75,22 @@ jobs:
             --lockfile=/src/pubspec.lock \
             --lockfile=/src/example/pubspec.lock
 
+      # gitleaks-action@v2 : version licenciée (requise pour les organisations).
+      # Ajouter le secret GITLEAKS_LICENSE dans Settings > Secrets and variables > Actions.
+      # L'action génère `results.sarif` et échoue le job si un secret est détecté.
       - name: Scan secrets — gitleaks
         id: gitleaks
-        run: |
-          docker run --rm -v "$(pwd):/repo" zricethezav/gitleaks:latest \
-            detect --source=/repo --redact --verbose \
-            --report-format=sarif --report-path=/repo/gitleaks-results.sarif
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ACTION_KEY }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
 
       - name: Upload gitleaks SARIF
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('results.sarif') != ''
         with:
-          sarif_file: gitleaks-results.sarif
+          sarif_file: results.sarif
           category: gitleaks
 
       - name: Static analysis
@@ -108,7 +112,8 @@ jobs:
           name: audit-reports-${{ github.sha }}
           path: |
             trivy-results.sarif
-            gitleaks-results.sarif
+            results.sarif
+          if-no-files-found: ignore
           retention-days: 90
 
   dast:
