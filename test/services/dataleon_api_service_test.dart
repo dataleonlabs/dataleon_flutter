@@ -77,10 +77,12 @@ void main() {
             request.url.path,
             '/individuals/test-session-id/config/chart',
           );
-          // Public: no auth / token / session / tenant headers.
+          // Public: no auth / token / session headers.
           expect(request.headers.containsKey('Authorization'), isFalse);
           expect(request.headers.containsKey('X-Trax'), isFalse);
-          expect(request.headers.containsKey('X-Account-Tenant'), isFalse);
+          // Le tenant est envoyé : le backend l'utilise pour router vers la
+          // bonne base de données (client ou non).
+          expect(request.headers['X-Account-Tenant'], 'tenant-42');
           // Only informative headers.
           expect(request.headers['Accept'], 'application/json');
           expect(request.headers['X-App-Version'], '2.0.4');
