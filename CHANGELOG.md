@@ -1,3 +1,8 @@
+## 2.0.10
+
+- Documents personnalisés : nouveau champ optionnel `conditionStatus` (booléen) sur chaque entrée de `dashboardConfiguration.kycCustomDocuments`. Absent ou `true` → comportement inchangé. À `false`, le document est désactivé : il disparaît de la liste verticale de choix (`visibleCustomDocuments`) et, dans une chaîne, son étape est sautée tout en étant comptée comme faite — sa clé est ajoutée aux documents complétés (ce qui fait aussi avancer les déclencheurs `previousDocumentKey: "__step__:N"`) et ses propres enfants sont empilés à sa place, pour que la chaîne se poursuive au lieu de partir à l'écran de succès.
+- `appVersion` par défaut passe à `2.0.10`.
+
 ## 2.0.9
 
 - Tests : correction d'un interblocage dans `dataleon_loading_page_test.dart`. `fetchConfig()` se termine par un `Future.delayed` de 900 ms ; l'attendre directement dans `testWidgets` (zone `FakeAsync`, dont l'horloge n'avance que sur `pump()`) figeait le test jusqu'à son timeout de 10 minutes. L'appel passe par `tester.runAsync()`. La suite passe de ~17 min à ~16 s, et 3 échecs jusque-là masqués par ce timeout sont redevenus visibles.

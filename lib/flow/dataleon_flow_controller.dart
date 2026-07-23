@@ -392,10 +392,18 @@ class DataleonFlowController extends ChangeNotifier {
       const <Map<String, dynamic>>[];
 
   List<Map<String, dynamic>> get visibleCustomDocuments => customDocuments
-      .where((document) => !isChainedCustomDocument(document))
+      .where((document) =>
+          !isChainedCustomDocument(document) &&
+          isCustomDocumentConditionMet(document))
       .toList(
         growable: false,
       );
+
+  /// A custom document is active unless `conditionStatus` is explicitly false.
+  /// Absent or true → the document behaves as before.
+  bool isCustomDocumentConditionMet(Map<String, dynamic>? document) {
+    return document?['conditionStatus'] != false;
+  }
 
   String? get currentDocumentKey {
     final customKey = _selectedCustomDocument?['key'];
@@ -572,6 +580,56 @@ class DataleonFlowController extends ChangeNotifier {
     }).toList(growable: false);
   }
 
+  /// Drop from the head of [queue] every document deactivated by
+  /// `conditionStatus: false`. A skipped document is still counted as done:
+  /// its key is pushed into [_completedDocumentKeys] (which also advances the
+  /// `__step__:N` counter) and its own children are queued in its place, so
+  /// the chain keeps going instead of falling through to the outro.
+  List<Map<String, dynamic>> resolveChainedQueue(
+    List<Map<String, dynamic>> queue,
+  ) {
+    final resolved = List<Map<String, dynamic>>.from(queue);
+
+    while (resolved.isNotEmpty &&
+        !isCustomDocumentConditionMet(resolved.first)) {
+      final skipped = resolved.removeAt(0);
+      final skippedKey = skipped['key'];
+      if (skippedKey is! String || skippedKey.isEmpty) {
+        continue;
+      }
+
+      if (!_completedDocumentKeys.contains(skippedKey)) {
+        _completedDocumentKeys.add(skippedKey);
+      }
+
+      final excludedKeys = <String>{
+        ..._completedDocumentKeys,
+        ...resolved.map((document) => document['key']).whereType<String>(),
+      };
+
+      final discovered = getNextChainedDocuments(
+        skippedKey,
+        excludedKeys: excludedKeys.toList(growable: false),
+        completedFlowStep: _completedDocumentKeys.length,
+        completedSelectedOptionId:
+            _completedDocumentSelectedOptions[skippedKey],
+      );
+
+      for (final document in discovered) {
+        final key = document['key'];
+        if (key is! String) {
+          continue;
+        }
+        if (resolved.any((item) => item['key'] == key)) {
+          continue;
+        }
+        resolved.add(document);
+      }
+    }
+
+    return resolved;
+  }
+
   /// Returns true if the webviewConfig contains a non-empty
   /// `intro_custom_document` content block.
   bool hasChainedDocIntroContent() {
@@ -685,9 +743,11 @@ class DataleonFlowController extends ChangeNotifier {
       }
     }
 
-    if (remainingQueue.isNotEmpty) {
+    final resolvedQueue = resolveChainedQueue(remainingQueue);
+
+    if (resolvedQueue.isNotEmpty) {
       _pendingChainedDocuments =
-          List<Map<String, dynamic>>.from(remainingQueue);
+          List<Map<String, dynamic>>.from(resolvedQueue);
       beginChainedDocument(_pendingChainedDocuments.first);
       return true;
     }

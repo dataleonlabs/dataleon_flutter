@@ -1403,6 +1403,128 @@ void main() {
     });
   });
 
+  group('conditionStatus', () {
+    Future<void> loadCustomDocuments(List<Map<String, dynamic>> docs) async {
+      final workspace = jsonEncode({
+        'dashboardConfiguration': {'kycCustomDocuments': docs},
+      });
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {'workspace': workspace}},
+          }),
+          200,
+        );
+      });
+      createController(apiService: DataleonApiService(config: config, client: client));
+      await controller.fetchConfig();
+    }
+
+    test('isCustomDocumentConditionMet only false when explicitly false', () {
+      createController();
+      expect(controller.isCustomDocumentConditionMet(null), isTrue);
+      expect(controller.isCustomDocumentConditionMet({'key': 'a'}), isTrue);
+      expect(
+        controller.isCustomDocumentConditionMet({'conditionStatus': true}),
+        isTrue,
+      );
+      expect(
+        controller.isCustomDocumentConditionMet({'conditionStatus': false}),
+        isFalse,
+      );
+    });
+
+    test('visibleCustomDocuments hides deactivated documents', () async {
+      await loadCustomDocuments([
+        {'key': 'proof_address'},
+        {'key': 'payslip', 'conditionStatus': false},
+        {'key': 'tax_notice', 'conditionStatus': true},
+      ]);
+
+      expect(
+        controller.visibleCustomDocuments.map((d) => d['key']),
+        ['proof_address', 'tax_notice'],
+      );
+      // The raw list is untouched.
+      expect(controller.customDocuments, hasLength(3));
+    });
+
+    test('skips a deactivated chained document and queues its children',
+        () async {
+      await loadCustomDocuments([
+        {
+          'key': 'payslip',
+          'enableDocumentChain': true,
+          'previousDocumentKey': 'passport',
+          'conditionStatus': false,
+        },
+        {
+          'key': 'tax_notice',
+          'enableDocumentChain': true,
+          'previousDocumentKey': 'payslip',
+        },
+      ]);
+
+      controller.selectDocumentType('passport');
+      final started = controller.completeCurrentDocumentAndContinue();
+
+      expect(started, isTrue);
+      expect(controller.activeChainedDocument?['key'], 'tax_notice');
+      // The skipped document counts as completed so the chain keeps going.
+      expect(controller.completedDocumentKeys, ['passport', 'payslip']);
+    });
+
+    test('skipped document still advances the __step__ counter', () async {
+      await loadCustomDocuments([
+        {
+          'key': 'payslip',
+          'enableDocumentChain': true,
+          'previousDocumentKey': 'passport',
+          'conditionStatus': false,
+        },
+        {
+          'key': 'bank_details',
+          'enableDocumentChain': true,
+          'previousDocumentKey': '__step__:2',
+        },
+      ]);
+
+      controller.selectDocumentType('passport');
+      final started = controller.completeCurrentDocumentAndContinue();
+
+      expect(started, isTrue);
+      expect(controller.activeChainedDocument?['key'], 'bank_details');
+    });
+
+    test('ends the chain when every queued document is deactivated', () async {
+      await loadCustomDocuments([
+        {
+          'key': 'payslip',
+          'enableDocumentChain': true,
+          'previousDocumentKey': 'passport',
+          'conditionStatus': false,
+        },
+        {
+          'key': 'tax_notice',
+          'enableDocumentChain': true,
+          'previousDocumentKey': 'payslip',
+          'conditionStatus': false,
+        },
+      ]);
+
+      controller.selectDocumentType('passport');
+      final started = controller.completeCurrentDocumentAndContinue();
+
+      expect(started, isFalse);
+      expect(controller.activeChainedDocument, isNull);
+      expect(controller.pendingChainedDocuments, isEmpty);
+      expect(
+        controller.completedDocumentKeys,
+        ['passport', 'payslip', 'tax_notice'],
+      );
+    });
+  });
+
   group('saveUploadedFile with documentKey', () {
     test('stores file by document key when documentType is set', () {
       createController();
