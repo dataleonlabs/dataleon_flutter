@@ -12,9 +12,9 @@ void main() {
       expect(config.token, 'jwt-token');
     });
 
-    test('appVersion defaults to 2.0.10', () {
+    test('appVersion defaults to 2.0.11', () {
       final config = DataleonConfig(sessionId: 's', token: 'jwt');
-      expect(config.appVersion, '2.0.10');
+      expect(config.appVersion, '2.0.11');
     });
 
     test('appVersion can be overridden', () {

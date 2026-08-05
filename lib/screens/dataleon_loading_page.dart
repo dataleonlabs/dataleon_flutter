@@ -153,28 +153,32 @@ class _DataleonLoadingPageState extends State<DataleonLoadingPage> {
             ),
           ),
 
-          // Bottom disclaimer
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Text.rich(
-              TextSpan(
-                text:
-                    'Cette opération est effectuée via la plateforme certifiée et sécurisée ',
-                children: [
-                  const TextSpan(
-                    text: 'Dataleon',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const TextSpan(text: '.'),
-                ],
-              ),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6B7280),
+          // Bottom disclaimer. White-label clients never see it; until the
+          // workspace resolves the flag is unknown, so we withhold it rather
+          // than let it flash on screen mid-loading.
+          if (controller.isWorkspaceResolved &&
+              !controller.hideDataleonBranding)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text.rich(
+                TextSpan(
+                  text:
+                      'Cette opération est effectuée via la plateforme certifiée et sécurisée ',
+                  children: [
+                    const TextSpan(
+                      text: 'Dataleon',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const TextSpan(text: '.'),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6B7280),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

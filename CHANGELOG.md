@@ -1,3 +1,10 @@
+## 2.0.11
+
+- White-label : nouveau drapeau `hideDataleonBranding` qui retire toute mention de Dataleon du parcours — la phrase d'introduction de l'écran d'accueil et le bandeau « plateforme certifiée et sécurisée Dataleon » de l'écran de chargement. Le drapeau est lu dans `dashboardConfiguration.advancedDesignConfiguration`, puis à la racine de `dashboardConfiguration`, et enfin dans la config publique `config/chart` (qui se résout plus tôt) ; le premier des trois qui est renseigné gagne. Absent → comportement inchangé. Les booléens sérialisés en chaîne (`"true"` / `"false"`) sont acceptés.
+- Écran de chargement : le bandeau n'est plus affiché tant que la configuration du workspace n'est pas résolue (`isWorkspaceResolved`), pour éviter qu'il n'apparaisse brièvement chez un client white-label avant d'être retiré.
+- Écran d'accueil : seul le texte d'introduction par défaut est supprimé en mode white-label, car il nomme Dataleon dans toutes les langues. Un `intro_preambule` fourni par le client ne porte aucune marque et reste affiché tel quel.
+- `appVersion` par défaut passe à `2.0.11`.
+
 ## 2.0.10
 
 - Documents personnalisés : nouveau champ optionnel `conditionStatus` (booléen) sur chaque entrée de `dashboardConfiguration.kycCustomDocuments`. Absent ou `true` → comportement inchangé. À `false`, le document est désactivé : il disparaît de la liste verticale de choix (`visibleCustomDocuments`) et, dans une chaîne, son étape est sautée tout en étant comptée comme faite — sa clé est ajoutée aux documents complétés (ce qui fait aussi avancer les déclencheurs `previousDocumentKey: "__step__:N"`) et ses propres enfants sont empilés à sa place, pour que la chaîne se poursuive au lieu de partir à l'écran de succès.

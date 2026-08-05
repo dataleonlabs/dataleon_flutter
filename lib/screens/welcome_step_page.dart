@@ -314,6 +314,13 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
     final introPreambule = (wc['intro_preambule'] as String?)?.trim() ?? '';
     final introTerms = (wc['intro_terms'] as String?)?.trim() ?? '';
 
+    // White-label: the localized fallback names Dataleon in every language, so
+    // it is dropped entirely. A client-provided `intro_preambule` carries no
+    // branding and is kept as is.
+    final showCustomPreambule = introPreambule.isNotEmpty;
+    final showFallbackPreambule =
+        !showCustomPreambule && !widget.controller.hideDataleonBranding;
+
     if (_isLanguagePageOpen) {
       return _buildLanguageSelectionPage(accentColor);
     }
@@ -333,7 +340,7 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (introPreambule.isNotEmpty)
+                    if (showCustomPreambule)
                       Text(
                         introPreambule,
                         style: const TextStyle(
@@ -342,7 +349,7 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                           height: 1.5,
                         ),
                       )
-                    else
+                    else if (showFallbackPreambule)
                       Text.rich(
                         TextSpan(
                           style: const TextStyle(
@@ -370,7 +377,8 @@ class _WelcomeStepPageState extends State<WelcomeStepPage> {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 28),
+                    if (showCustomPreambule || showFallbackPreambule)
+                      const SizedBox(height: 28),
                     Text(
                       introTitle.isNotEmpty
                           ? introTitle

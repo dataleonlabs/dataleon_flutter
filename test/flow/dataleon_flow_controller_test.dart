@@ -1386,6 +1386,66 @@ void main() {
     });
   });
 
+  group('hideDataleonBranding', () {
+    Future<DataleonFlowController> controllerForWorkspace(
+      Map<String, dynamic> dashboardConfiguration,
+    ) async {
+      final workspace = jsonEncode({
+        'dashboardConfiguration': dashboardConfiguration,
+      });
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'result': {'metadata': {'workspace': workspace}},
+          }),
+          200,
+        );
+      });
+      final apiService = DataleonApiService(config: config, client: client);
+      createController(apiService: apiService);
+      await controller.fetchConfig();
+      return controller;
+    }
+
+    test('is false when no workspace is loaded', () {
+      createController();
+      expect(controller.isWorkspaceResolved, false);
+      expect(controller.hideDataleonBranding, false);
+    });
+
+    test('reads the flag from advancedDesignConfiguration', () async {
+      await controllerForWorkspace({
+        'advancedDesignConfiguration': {'hideDataleonBranding': true},
+      });
+
+      expect(controller.isWorkspaceResolved, true);
+      expect(controller.hideDataleonBranding, true);
+    });
+
+    test('accepts the flag at the root of dashboardConfiguration', () async {
+      await controllerForWorkspace({'hideDataleonBranding': true});
+
+      expect(controller.hideDataleonBranding, true);
+    });
+
+    test('accepts booleans serialized as strings', () async {
+      await controllerForWorkspace({
+        'advancedDesignConfiguration':
+            jsonEncode({'hideDataleonBranding': 'true'}),
+      });
+
+      expect(controller.hideDataleonBranding, true);
+    });
+
+    test('is false when the flag is absent', () async {
+      await controllerForWorkspace({
+        'advancedDesignConfiguration': {'progressBarEnabled': true},
+      });
+
+      expect(controller.hideDataleonBranding, false);
+    });
+  });
+
   group('getNextChainedDocuments', () {
     test('returns empty list for null completedDocumentKey', () {
       createController();

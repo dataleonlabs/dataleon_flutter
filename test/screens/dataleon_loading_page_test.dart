@@ -93,4 +93,92 @@ void main() {
 
     await teardownPage(tester);
   });
+
+  /// Builds a controller whose request config carries [dashboardConfiguration],
+  /// driven all the way through fetchConfig() so the workspace is resolved.
+  Future<DataleonFlowController> resolvedController(
+    WidgetTester tester,
+    Map<String, dynamic> dashboardConfiguration,
+  ) async {
+    final workspace = jsonEncode({
+      'dashboardConfiguration': dashboardConfiguration,
+    });
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/config/chart')) {
+        return http.Response(jsonEncode(<String, dynamic>{}), 200);
+      }
+      return http.Response(
+        jsonEncode({
+          'result': {'metadata': {'workspace': workspace}},
+        }),
+        200,
+      );
+    });
+
+    final controller = DataleonFlowController(
+      config: config,
+      apiService: DataleonApiService(config: config, client: client),
+    );
+    addTearDown(controller.dispose);
+    await tester.runAsync(() => controller.fetchConfig());
+    return controller;
+  }
+
+  testWidgets('shows the Dataleon disclaimer by default', (tester) async {
+    final controller = await resolvedController(tester, {});
+
+    await tester.pumpWidget(
+      MaterialApp(home: DataleonLoadingPage(controller: controller)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(controller.isWorkspaceResolved, isTrue);
+    expect(find.textContaining('Dataleon'), findsOneWidget);
+
+    await teardownPage(tester);
+  });
+
+  testWidgets('hides the Dataleon disclaimer when white-label is enabled',
+      (tester) async {
+    final controller = await resolvedController(tester, {
+      'advancedDesignConfiguration': {'hideDataleonBranding': true},
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(home: DataleonLoadingPage(controller: controller)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(controller.hideDataleonBranding, isTrue);
+    expect(find.textContaining('Dataleon'), findsNothing);
+
+    await teardownPage(tester);
+  });
+
+  testWidgets('withholds the disclaimer while the workspace is unresolved',
+      (tester) async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/config/chart')) {
+        return http.Response(jsonEncode(<String, dynamic>{}), 200);
+      }
+      return http.Response(jsonEncode(<String, dynamic>{}), 500);
+    });
+    final controller = DataleonFlowController(
+      config: config,
+      apiService: DataleonApiService(config: config, client: client),
+    );
+    addTearDown(controller.dispose);
+    await tester.runAsync(() => controller.fetchConfig());
+
+    await tester.pumpWidget(
+      MaterialApp(home: DataleonLoadingPage(controller: controller)),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(controller.isChartResolved, isTrue);
+    expect(controller.isWorkspaceResolved, isFalse);
+    expect(find.textContaining('Dataleon'), findsNothing);
+
+    await teardownPage(tester);
+  });
 }

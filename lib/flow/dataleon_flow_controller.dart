@@ -59,6 +59,7 @@ class DataleonFlowController extends ChangeNotifier {
   String? _brandingLogoUrl;
   String? _brandingAppName;
   String? _brandingPrincipalColor;
+  bool? _brandingHideDataleon;
   String _loadingMessageKey = '';
   String? _documentType;
   String? _documentCountry;
@@ -197,6 +198,45 @@ class DataleonFlowController extends ChangeNotifier {
 
     if (_contentsConfig.isEmpty) return base;
     return {...base, ..._contentsConfig};
+  }
+
+  /// True once the request config has resolved and the workspace is available.
+  ///
+  /// [hideDataleonBranding] is only meaningful from that point on: before it,
+  /// the flag is simply unknown.
+  bool get isWorkspaceResolved => _workspace != null;
+
+  /// White-label: hide every mention of Dataleon in the flow (the intro
+  /// sentence and the loading-screen disclaimer).
+  ///
+  /// The workspace configuration is the source of truth. The flag is expected
+  /// under `advancedDesignConfiguration` but we also accept it at the root of
+  /// `dashboardConfiguration`, and fall back to the public chart config, which
+  /// resolves earlier. Booleans are sometimes serialized as strings by the
+  /// backend, so `'true'` counts as true.
+  bool get hideDataleonBranding {
+    final candidates = <dynamic>[
+      advancedDesignConfiguration['hideDataleonBranding'],
+      dashboardConfiguration['hideDataleonBranding'],
+      _brandingHideDataleon,
+    ];
+
+    for (final candidate in candidates) {
+      final parsed = _parseBoolFlag(candidate);
+      if (parsed != null) return parsed;
+    }
+
+    return false;
+  }
+
+  static bool? _parseBoolFlag(dynamic value) {
+    if (value is bool) return value;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true') return true;
+      if (normalized == 'false') return false;
+    }
+    return null;
   }
 
   Map<String, dynamic> get advancedDesignConfiguration {
@@ -968,6 +1008,7 @@ class DataleonFlowController extends ChangeNotifier {
       final name = chart['applicationName'];
       _brandingAppName =
           name is String && name.trim().isNotEmpty ? name.trim() : null;
+      _brandingHideDataleon = _parseBoolFlag(chart['hideDataleonBranding']);
       // Debug: surface branding values to console so QA can verify what the
       // SDK received from the public chart endpoint when testing.
       try {
@@ -1250,6 +1291,7 @@ class DataleonFlowController extends ChangeNotifier {
     _brandingLogoUrl = null;
     _brandingAppName = null;
     _brandingPrincipalColor = null;
+    _brandingHideDataleon = null;
     _loadingMessageKey = '';
     _contentsRaw = const <String, dynamic>{};
     _contentsConfig = const <String, dynamic>{};
