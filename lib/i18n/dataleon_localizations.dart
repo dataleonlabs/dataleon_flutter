@@ -298,6 +298,24 @@ class DataleonLocalizations {
               'et celui figurant sur votre document d\'identité. '
               'Veuillez réessayer en vous assurant que vous êtes bien '
               'le propriétaire légitime du document.',
+      'personalDataErrors': {
+        'fullName':
+            'Nous n\'avons pas pu confirmer la correspondance entre votre nom '
+                'et celui figurant sur votre document d\'identité. '
+                'Veuillez réessayer en vous assurant que vous êtes bien '
+                'le propriétaire légitime du document.',
+        'countryMismatch':
+            'Nous n\'avons pas été en mesure de confirmer la correspondance '
+                'entre le pays indiqué que vous avez fourni et celui figurant sur '
+                'votre pièce d\'identité. Veuillez réessayer en vous assurant que '
+                'vous êtes bien le propriétaire légitime du document dans le bon pays.',
+        'expired':
+            'Votre document d\'identité semble avoir expiré. Veuillez réessayer '
+                'en sélectionnant un autre document valide.',
+        'age':
+            'Vous devez avoir au moins 18 ans pour accéder à cette fonctionnalité. '
+                'Veuillez réessayer en confirmant votre âge avec le service client.',
+      },
       'blacklist': 'Vérification de conformité',
       'blacklistError': 'Le contrôle de conformité a échoué.',
       'faceSimilarity': 'Comparaison document/visage',
@@ -465,6 +483,22 @@ class DataleonLocalizations {
           'We couldn\'t verify the match between your name and the one on your '
               'identity document. Please try again, ensuring you are the legitimate '
               'owner of the document.',
+      'personalDataErrors': {
+        'fullName':
+            'We couldn\'t verify the match between your name and the one on your '
+                'identity document. Please try again, ensuring you are the legitimate '
+                'owner of the document.',
+        'countryMismatch':
+            'We couldn\'t verify the match between the country you provided and '
+                'the one on your identity document. Please try again, ensuring you '
+                'are the legitimate owner of the document in the correct country.',
+        'expired':
+            'Your identity document appears to be expired. Please try again with '
+                'a valid document.',
+        'age':
+            'You must be at least 18 years old to access this feature. Please try '
+                'again by confirming your age with customer service.',
+      },
       'blacklist': 'Compliance check',
       'blacklistError': 'Compliance check failed.',
       'faceSimilarity': 'Face matching',
@@ -586,6 +620,23 @@ class DataleonLocalizations {
       'personalData': 'Verificación de información personal',
       'personalDataError':
           'No pudimos verificar la correspondencia entre su nombre y el de su documento.',
+      'personalDataErrors': {
+        'fullName':
+            'No pudimos verificar la coincidencia entre su nombre y el que figura '
+                'en su documento de identidad. Inténtelo de nuevo asegurándose de '
+                'que es el titular legítimo del documento.',
+        'countryMismatch':
+            'No pudimos verificar la coincidencia entre el país que proporcionó y '
+                'el que figura en su documento de identidad. Inténtelo de nuevo '
+                'asegurándose de que es el titular legítimo del documento en el país '
+                'correcto.',
+        'expired':
+            'Parece que su documento de identidad ha caducado. Inténtelo de nuevo '
+                'con un documento válido.',
+        'age':
+            'Debe tener al menos 18 años para acceder a esta función. Inténtelo de '
+                'nuevo confirmando su edad con el servicio de atención al cliente.',
+      },
       'blacklist': 'Verificación de cumplimiento',
       'blacklistError': 'Falló la verificación de cumplimiento.',
       'faceSimilarity': 'Comparación de rostros',

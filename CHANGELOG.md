@@ -1,3 +1,11 @@
+## 2.0.12
+
+- Validations de confirmation : le parcours est maintenant bloqué quand l'API refuse un contrôle. Jusqu'ici, seuls `success: false`, `status: false` ou `error` dans la réponse étaient lus ; or `personal-data-checking` et `similarity-document` signalent un refus dans `validations[]` (`validate: false`). Un nom qui ne correspond pas, une pièce expirée, un mineur, un pays différent ou un visage qui ne correspond pas passaient donc l'étape sans erreur et n'apparaissaient qu'au back-office. Les contrôles bloquants sont `FullName`, `Country`, `ExpirationDate` et `Age18` après la pièce, `FaceSimilarity` après le selfie — même contrat que la webview. Logique isolée dans `lib/screens/capture_validations.dart` (`captureValidationDefs`, `captureValidationFailure`) et couverte par des tests.
+- Messages d'erreur dédiés par contrôle (`validations.personalDataErrors.fullName` / `countryMismatch` / `expired` / `age`) en français, anglais et espagnol, repris de la webview ; les autres langues retombent sur le français.
+- Écran de confirmation : l'erreur s'affiche dans une feuille blanche qui monte du bas et recouvre l'écran (icône d'alerte sur fond rouge pâle, texte sombre, bouton « Reprendre » aux couleurs du workspace), comme dans la webview.
+- Correction : le bouton « Reprendre » restait sans effet après un refus de validation (`_submitting` n'était pas remis à `false`). Il relance désormais la capture — depuis le recto quand le refus survient après le verso.
+- `appVersion` par défaut passe à `2.0.12`.
+
 ## 2.0.11
 
 - White-label : nouveau drapeau `hideDataleonBranding` qui retire toute mention de Dataleon du parcours — la phrase d'introduction de l'écran d'accueil et le bandeau « plateforme certifiée et sécurisée Dataleon » de l'écran de chargement. Le drapeau est lu dans `dashboardConfiguration.advancedDesignConfiguration`, puis à la racine de `dashboardConfiguration`, et enfin dans la config publique `config/chart` (qui se résout plus tôt) ; le premier des trois qui est renseigné gagne. Absent → comportement inchangé. Les booléens sérialisés en chaîne (`"true"` / `"false"`) sont acceptés.

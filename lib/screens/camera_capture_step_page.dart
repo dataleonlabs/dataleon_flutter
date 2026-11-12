@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../flow/dataleon_flow_controller.dart';
 import '../flow/dataleon_flow_step.dart';
 import '../i18n/dataleon_localizations.dart';
+import 'capture_validations.dart';
 
 // ---------------------------------------------------------------------------
 //  CameraCaptureStepPage – fullscreen realtime capture like the React version
@@ -412,7 +413,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       );
 
       // 3. Run validations
-      final validations = _validationDefs(
+      final validations = captureValidationDefs(
         phase: _phase,
         hasBackPhase: _phases.contains('back'),
         lang: _lang,
@@ -436,10 +437,14 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
             data: vPayload,
             headers: _requestHeaders(),
           );
-          if (_hasValidationFailure(resp) && v.wait) {
+          final failure = captureValidationFailure(resp, v);
+          if (failure != null && v.wait) {
+            // `_submitting` doit retomber : sinon `_handleRetake` ignore le
+            // clic sur « Reprendre » et l'utilisateur reste bloqué.
             setState(() {
+              _submitting = false;
               _confirmStatus = 'error';
-              _confirmError = v.errorMessage;
+              _confirmError = failure.message;
               _confirmPercent = null;
             });
             return;
@@ -447,6 +452,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         } catch (_) {
           if (v.wait) {
             setState(() {
+              _submitting = false;
               _confirmStatus = 'error';
               _confirmError = v.errorMessage;
               _confirmPercent = null;
@@ -495,6 +501,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
+        _submitting = false;
         _confirmStatus = 'error';
         _confirmError = e.toString();
         _confirmPercent = null;
@@ -628,18 +635,6 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
       });
     }
     return docs;
-  }
-
-  bool _hasValidationFailure(Map<String, dynamic> r) {
-    if (r['success'] == false || r['status'] == false || r['error'] != null) {
-      return true;
-    }
-    final d = r['data'];
-    if (d is Map<String, dynamic> &&
-        (d['success'] == false || d['status'] == false || d['error'] != null)) {
-      return true;
-    }
-    return false;
   }
 
   // ---- render helpers ----
@@ -890,60 +885,80 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
             ),
           ];
 
-    return Container(
-      color: Colors.black,
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Captured image
-            Expanded(
-              child: Center(
-                child: _capturedBytes != null
-                    ? Image.memory(_capturedBytes!, fit: BoxFit.contain)
-                    : const SizedBox.shrink(),
-              ),
-            ),
+    final hasError = _confirmStatus == 'error' && _confirmError != null;
 
-            // Bottom panel
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ...checklistItems.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          Icon(item.icon, color: Colors.white70, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              item.text,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          color: Colors.black,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Captured image
+                Expanded(
+                  child: Center(
+                    child: _capturedBytes != null
+                        ? Image.memory(_capturedBytes!, fit: BoxFit.contain)
+                        : const SizedBox.shrink(),
                   ),
-                  const SizedBox(height: 8),
-                  if (_confirmStatus == 'error' && _confirmError != null)
-                    _buildErrorSheet()
-                  else if (_confirmStatus != null)
-                    _buildProgressBar()
-                  else
-                    _buildConfirmButtons(),
-                ],
-              ),
+                ),
+
+                // Bottom panel
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...checklistItems.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Icon(item.icon, color: Colors.white70, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  item.text,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // En erreur, la feuille blanche recouvre ce panneau :
+                      // on garde la barre de progression dessous, comme la
+                      // webview.
+                      if (_confirmStatus != null)
+                        _buildProgressBar()
+                      else
+                        _buildConfirmButtons(),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (hasError) ...[
+          // Voile sombre : la feuille d'erreur passe au-dessus de tout l'écran.
+          const Positioned.fill(
+            child: ColoredBox(color: Color(0x59000000)),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildErrorSheet(),
+          ),
+        ],
+      ],
     );
   }
 
@@ -1025,113 +1040,89 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     );
   }
 
+  /// Feuille d'erreur blanche qui monte du bas et recouvre la confirmation,
+  /// à l'identique de la webview (icône dans un rond rouge pâle, texte sombre,
+  /// bouton « Reprendre » aux couleurs du workspace).
   Widget _buildErrorSheet() {
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        const Icon(
-          Icons.warning_amber_rounded,
-          color: Color(0xFFEF4444),
-          size: 36,
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(_confirmError),
+      tween: Tween(begin: 1, end: 0),
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+      builder: (context, offset, child) => FractionalTranslation(
+        translation: Offset(0, offset),
+        child: child,
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 32 + bottomInset),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x40000000),
+              blurRadius: 50,
+              offset: Offset(0, 25),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        Text(
-          _confirmError!,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _handleRetake,
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              backgroundColor: _btnColor,
-              foregroundColor: _btnTextColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2), // red-50
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFEF4444), // red-500
+                size: 24,
               ),
             ),
-            child: Text(
-              _t('cameraCapture.retake'),
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            const SizedBox(height: 16),
+            Text(
+              _confirmError!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF111827), // gray-900
+                fontSize: 16,
+                height: 1.5,
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _handleRetake,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _btnColor,
+                  foregroundColor: _btnTextColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  _t('cameraCapture.retake'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-//  Validation definitions (same as React getPhaseValidations)
-// ---------------------------------------------------------------------------
-
-class _ValidationDef {
-  const _ValidationDef({
-    required this.path,
-    required this.label,
-    required this.errorMessage,
-    required this.step,
-    required this.wait,
-  });
-
-  final String path;
-  final String label;
-  final String errorMessage;
-  final int step;
-  final bool wait;
-}
-
-List<_ValidationDef> _validationDefs({
-  required String phase,
-  required bool hasBackPhase,
-  required String lang,
-}) {
-  String t(String key) => DataleonLocalizations.t(lang, key);
-
-  if (phase == 'back' || (phase == 'front' && !hasBackPhase)) {
-    return [
-      _ValidationDef(
-        path: '/individuals/<id>/verifications/personal-data-checking',
-        label: t('validations.personalData'),
-        errorMessage: t('validations.personalDataError'),
-        step: 1,
-        wait: true,
-      ),
-      _ValidationDef(
-        path: '/individuals/<id>/verifications/blacklist-detection',
-        label: t('validations.blacklist'),
-        errorMessage: t('validations.blacklistError'),
-        step: 1,
-        wait: false,
-      ),
-    ];
-  }
-  if (phase == 'face') {
-    return [
-      _ValidationDef(
-        path: '/individuals/<id>/verifications/similarity-document',
-        label: t('validations.faceSimilarity'),
-        errorMessage: t('validations.faceSimilarityError'),
-        step: 3,
-        wait: true,
-      ),
-      _ValidationDef(
-        path: '/individuals/<id>/verifications/facial-classification',
-        label: t('validations.facialClassification'),
-        errorMessage: t('validations.facialClassificationError'),
-        step: 3,
-        wait: false,
-      ),
-    ];
-  }
-  return const [];
 }
 
 String _docNameForPhase(String phase) {
