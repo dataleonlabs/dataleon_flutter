@@ -2,6 +2,10 @@ dataleon_flutter
 3.7
 file:///data/dataleon_flutter/
 file:///data/dataleon_flutter/lib/
+archive
+3.0
+file:///root/.pub-cache/hosted/pub.dev/archive-4.7.1/
+file:///root/.pub-cache/hosted/pub.dev/archive-4.7.1/lib/
 args
 3.3
 file:///root/.pub-cache/hosted/pub.dev/args-2.7.0/
@@ -82,6 +86,10 @@ http_parser
 3.4
 file:///root/.pub-cache/hosted/pub.dev/http_parser-4.1.2/
 file:///root/.pub-cache/hosted/pub.dev/http_parser-4.1.2/lib/
+image
+3.0
+file:///root/.pub-cache/hosted/pub.dev/image-4.12.0/
+file:///root/.pub-cache/hosted/pub.dev/image-4.12.0/lib/
 leak_tracker
 3.2
 file:///root/.pub-cache/hosted/pub.dev/leak_tracker-10.0.8/
@@ -174,6 +182,10 @@ plugin_platform_interface
 3.0
 file:///root/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8/
 file:///root/.pub-cache/hosted/pub.dev/plugin_platform_interface-2.1.8/lib/
+posix
+3.0
+file:///root/.pub-cache/hosted/pub.dev/posix-6.5.4/
+file:///root/.pub-cache/hosted/pub.dev/posix-6.5.4/lib/
 source_span
 3.1
 file:///root/.pub-cache/hosted/pub.dev/source_span-1.10.1/

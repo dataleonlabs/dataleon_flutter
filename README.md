@@ -28,7 +28,7 @@ Ajoutez la dépendance dans votre `pubspec.yaml` :
 
 ```yaml
 dependencies:
-  dataleon_flutter: ^2.0.12
+  dataleon_flutter: ^2.0.13
 ```
 
 Puis récupérez les dépendances :
@@ -82,6 +82,30 @@ final config = DataleonConfig(
   token: 'YOUR_JWT_TOKEN',
 );
 ```
+
+#### Réglages de la capture temps réel (optionnels)
+
+Pendant la capture (recto, verso, selfie), le SDK lit le flux vidéo de la caméra — sans son d'obturateur — et envoie des images à l'analyse jusqu'à ce que le document soit validé. Trois réglages encadrent cette boucle :
+
+| Paramètre | Défaut | Rôle |
+|---|---|---|
+| `captureFrameInterval` | `Duration(milliseconds: 400)` | délai minimal entre deux images envoyées |
+| `captureMaxAttempts` | `300` | nombre maximal d'images envoyées pour une étape |
+| `captureTimeout` | `Duration(minutes: 2)` | durée maximale de **chaque** étape caméra (recto, verso, selfie) |
+
+```dart
+final config = DataleonConfig(
+  sessionId: 'YOUR_SESSION_ID',
+  token: 'YOUR_JWT_TOKEN',
+  // Contrôle bref et répétable (ex. avant chaque course) :
+  captureMaxAttempts: 60,
+  captureTimeout: const Duration(seconds: 45),
+);
+```
+
+Le délai `captureTimeout` est décompté dès que la caméra de l'étape est prête et repart de zéro à chaque étape (recto validé → 2 minutes pour le verso, etc.), à « Réessayer » et à « Reprendre » ; le temps passé hors caméra (écran de confirmation, autres écrans) ne compte pas. À échéance, l'envoi des images et les appels API s'arrêtent aussitôt, même si une analyse est en cours, et l'écran affiche un message propre à l'étape, par exemple : « Le temps imparti pour capturer le recto de votre document est écoulé. Vérifiez qu'il est bien éclairé et entièrement visible dans le cadre, puis relancez la capture. »
+
+Le serveur ferme de toute façon une étape après 300 images ou 6 minutes. Quand une limite est atteinte, la capture s'arrête, l'utilisateur voit un message avec un bouton « Réessayer », et `onResult` reçoit `DataleonStatus.error` (voir [Erreurs de capture](#erreurs-de-capture)).
 
 En pratique, dans un projet existant, vous allez rarement hardcoder ces valeurs dans l'UI. Le plus propre est de récupérer le `sessionId` et le `token` depuis votre backend ou votre couche de service applicative avant d'ouvrir le flow. Le SDK ne génère plus de token côté frontend.
 
@@ -296,6 +320,22 @@ void handleDataleonResult(BuildContext context, DataleonResult result) {
   }
 }
 ```
+
+### Erreurs de capture
+
+Quand la capture temps réel s'arrête sans succès, `onResult` reçoit `DataleonStatus.error` et `result.error` vaut l'un de ces codes. Le parcours reste ouvert : l'utilisateur peut relancer la capture avec « Réessayer » (une nouvelle erreur sera signalée à nouveau), ou fermer le parcours.
+
+| Code | Cause |
+|---|---|
+| `capture_timeout` | `captureTimeout` (2 min par défaut) écoulé sur une étape caméra sans image validée |
+| `capture_max_attempts` | `captureMaxAttempts` images envoyées sans succès |
+| `capture_too_many_attempts` | le serveur a fermé l'étape (300 images ou 6 minutes) |
+| `capture_api_error` | l'API a répondu `status: "error"` (requête invalide, jeton refusé, panne serveur) : arrêt immédiat, sans nouvel essai |
+| `capture_network_error` | 3 erreurs réseau ou HTTP de suite (réponse HTTP sans corps `status: "error"`) |
+
+Une image refusée (`ko` : carte absente, floue, hors du cadre…) n'est pas une erreur : son message guide l'utilisateur et la capture continue.
+
+L'API répond toujours l'un de ces quatre statuts : `pending` (image correcte, vérification en cours), `ok` (étape validée), `ko` (image refusée, on continue) ou `error` (arrêt). Un statut vide, absent ou inconnu est lu comme `pending` : la capture continue, bornée par `captureTimeout` et `captureMaxAttempts`.
 
 ## Adapter le flow à votre application
 

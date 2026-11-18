@@ -12,9 +12,47 @@ void main() {
       expect(config.token, 'jwt-token');
     });
 
-    test('appVersion defaults to 2.0.12', () {
+    test('appVersion defaults to 2.0.13', () {
       final config = DataleonConfig(sessionId: 's', token: 'jwt');
-      expect(config.appVersion, '2.0.12');
+      expect(config.appVersion, '2.0.13');
+    });
+
+    group('capture loop settings', () {
+      test('defaults', () {
+        final config = DataleonConfig(sessionId: 's', token: 'jwt');
+        expect(config.captureFrameInterval, const Duration(milliseconds: 400));
+        expect(config.captureMaxAttempts, 300);
+        expect(config.captureTimeout, const Duration(minutes: 2));
+      });
+
+      test('can be set by the integration', () {
+        final config = DataleonConfig(
+          sessionId: 's',
+          token: 'jwt',
+          captureFrameInterval: const Duration(milliseconds: 500),
+          captureMaxAttempts: 40,
+          captureTimeout: const Duration(seconds: 30),
+        );
+        expect(config.captureFrameInterval, const Duration(milliseconds: 500));
+        expect(config.captureMaxAttempts, 40);
+        expect(config.captureTimeout, const Duration(seconds: 30));
+      });
+
+      test('rejects invalid values', () {
+        expect(
+            () => DataleonConfig(sessionId: 's', token: 'jwt', captureMaxAttempts: 0),
+            throwsArgumentError);
+        expect(
+            () => DataleonConfig(
+                sessionId: 's', token: 'jwt', captureTimeout: Duration.zero),
+            throwsArgumentError);
+        expect(
+            () => DataleonConfig(
+                sessionId: 's',
+                token: 'jwt',
+                captureFrameInterval: const Duration(milliseconds: -1)),
+            throwsArgumentError);
+      });
     });
 
     test('appVersion can be overridden', () {

@@ -1203,6 +1203,20 @@ class DataleonFlowController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// La capture temps réel s'est arrêtée sans succès : `onResult` reçoit
+  /// `DataleonStatus.error` avec [code] (`capture_timeout`,
+  /// `capture_max_attempts`, …). Le parcours reste ouvert : l'utilisateur peut
+  /// réessayer (cf. [resumeAfterCaptureError]).
+  void reportCaptureError(String code) => setError(code);
+
+  /// L'utilisateur relance la capture après une erreur : le parcours repart
+  /// (`started`), et une nouvelle erreur sera signalée à nouveau.
+  void resumeAfterCaptureError() {
+    if (_result.status != DataleonStatus.error) return;
+    _result = const DataleonResult(status: DataleonStatus.started);
+    notifyListeners();
+  }
+
   /// Save an intermediate step result locally.
   void saveStepResult(DataleonFlowStep step, DataleonStepResult result) {
     _stepResults[step] = result;

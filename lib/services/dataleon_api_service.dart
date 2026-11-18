@@ -170,6 +170,13 @@ class DataleonApiService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      // Contrat de l'API : une requête qu'elle ne peut pas traiter (requête
+      // invalide, jeton refusé, panne) répond `{"status": "error", ...}` en
+      // 4xx/5xx. La renvoyer ne sert à rien : la réponse remonte telle quelle
+      // pour que la boucle s'arrête tout de suite. Sans ce corps (passerelle,
+      // coupure), c'est une erreur réseau, tolérée quelques fois.
+      final error = _captureErrorBody(response.body);
+      if (error != null) return error;
       throw DataleonApiException(
         'Failed to send capture frame',
         statusCode: response.statusCode,
@@ -181,6 +188,23 @@ class DataleonApiService {
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Corps `{"status": "error", ...}` d'une réponse HTTP en échec, sinon null.
+  static Map<String, dynamic>? _captureErrorBody(String body) {
+    if (body.isEmpty) return null;
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        final status = data['status'];
+        if (status is String && status.trim().toLowerCase() == 'error') {
+          return data;
+        }
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
   }
 
   Future<Map<String, dynamic>> generateSignedUploadUrl({

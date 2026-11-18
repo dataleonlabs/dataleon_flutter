@@ -261,6 +261,40 @@ void main() {
           throwsA(isA<DataleonApiException>()),
         );
       });
+
+      for (final code in [400, 403, 500]) {
+        test('returns the API error body on HTTP $code', () async {
+          final client = MockClient((request) async {
+            return http.Response(
+              jsonEncode({
+                'status': 'error',
+                'message': 'Missing fields: step',
+                'details': {'reason': 'missing_fields'},
+              }),
+              code,
+            );
+          });
+
+          final service = createService(client);
+          final result =
+              await service.sendCaptureFrame(payload: {'image': 'data'});
+          expect(result['status'], 'error');
+          expect(result['details'], {'reason': 'missing_fields'});
+        });
+      }
+
+      test('still throws on HTTP error with a non-error status', () async {
+        // Ancienne API : `ko` en 400 sur une requête invalide.
+        final client = MockClient((request) async {
+          return http.Response(jsonEncode({'status': 'ko'}), 400);
+        });
+
+        final service = createService(client);
+        expect(
+          () => service.sendCaptureFrame(payload: {'image': 'data'}),
+          throwsA(isA<DataleonApiException>()),
+        );
+      });
     });
 
     group('generateSignedUploadUrl', () {

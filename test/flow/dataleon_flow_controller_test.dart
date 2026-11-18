@@ -206,6 +206,29 @@ void main() {
       controller.abort();
       expect(controller.result.status, DataleonStatus.aborted);
     });
+
+    test('reportCaptureError reports the capture error code', () {
+      createController();
+      controller.start();
+      controller.reportCaptureError('capture_timeout');
+      expect(controller.result.status, DataleonStatus.error);
+      expect(controller.result.error, 'capture_timeout');
+    });
+
+    test('resumeAfterCaptureError puts the flow back to started', () {
+      createController();
+      controller.start();
+      controller.reportCaptureError('capture_max_attempts');
+      controller.resumeAfterCaptureError();
+      expect(controller.result.status, DataleonStatus.started);
+    });
+
+    test('resumeAfterCaptureError leaves other statuses untouched', () {
+      createController();
+      controller.finish();
+      controller.resumeAfterCaptureError();
+      expect(controller.result.status, DataleonStatus.finished);
+    });
   });
 
   group('Loading & progress', () {

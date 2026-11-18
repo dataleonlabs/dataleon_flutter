@@ -74,9 +74,12 @@ class _DataleonFlowViewState extends State<DataleonFlowView> {
 
   void _handleControllerChanged() {
     final result = _controller.result;
-    if (result.status != DataleonStatus.idle &&
-        result.status != DataleonStatus.started &&
-        result.status != _lastReportedStatus) {
+    if (result.status == DataleonStatus.idle ||
+        result.status == DataleonStatus.started) {
+      // Retour en cours de parcours (ex. capture relancée après une erreur) :
+      // la prochaine erreur doit être signalée même si c'est la même.
+      _lastReportedStatus = null;
+    } else if (result.status != _lastReportedStatus) {
       _lastReportedStatus = result.status;
       widget.onResult?.call(result);
     }

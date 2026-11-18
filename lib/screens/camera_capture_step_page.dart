@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../flow/dataleon_flow_controller.dart';
 import '../flow/dataleon_flow_step.dart';
 import '../i18n/dataleon_localizations.dart';
+import 'capture_frame_encoder.dart';
+import 'capture_loop_policy.dart';
 import 'capture_validations.dart';
 
 // ---------------------------------------------------------------------------
@@ -15,8 +18,16 @@ import 'capture_validations.dart';
 // ---------------------------------------------------------------------------
 
 class CameraCaptureStepPage extends StatefulWidget {
-  const CameraCaptureStepPage({super.key, required this.controller});
+  const CameraCaptureStepPage({
+    super.key,
+    required this.controller,
+    @visibleForTesting this.clock,
+  });
   final DataleonFlowController controller;
+
+  /// Horloge de la boucle de capture (cadence, délai par étape). Tests
+  /// uniquement : l'horloge système sinon.
+  final DateTime Function()? clock;
 
   @override
   State<CameraCaptureStepPage> createState() => _CameraCaptureStepPageState();
@@ -32,11 +43,23 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
   bool _greenDelay = false;
   bool _pendingConfirm = false;
   Uint8List? _capturedBytes;
-  XFile? _capturedFile;
 
-  // API loop
+  // API loop. Les images viennent du flux vidéo (`startImageStream`, silencieux)
+  // quand la plateforme le permet, sinon de `takePicture()` (web). Un seul envoi
+  // à la fois (`_sending`), espacés d'au moins `captureFrameInterval`.
   bool _loopRunning = false;
   bool _sending = false;
+  bool _streaming = false;
+  // Incrémenté à chaque arrêt/relance : un envoi encore en vol au moment d'un
+  // arrêt ne doit plus toucher à l'état.
+  int _loopGeneration = 0;
+  late CaptureLoopTracker _tracker;
+
+  // Délai de l'étape caméra en cours : à échéance, la capture s'arrête même si
+  // une requête est en vol (sa réponse est ignorée).
+  Timer? _stepDeadline;
+  // Message de l'échec qui a arrêté la capture (feuille d'erreur + Réessayer).
+  String? _captureError;
   String? _apiStatus;
   String? _apiMessage;
   // Cached photo dimensions (same for all frames with same camera)
@@ -50,21 +73,43 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
   String? _confirmStatus;
   String? _confirmError;
 
-  late final String _sessionId;
+  // Renouvelé quand l'utilisateur relance une capture arrêtée : le serveur
+  // plafonne les images par session et par étape.
+  late String _sessionId;
 
   @override
   void initState() {
     super.initState();
     _sessionId = DateTime.now().microsecondsSinceEpoch.toString();
+    _tracker = CaptureLoopTracker(_loopSettings, clock: widget.clock);
     _initCamera();
   }
 
   @override
   void dispose() {
-    _stopLoop();
-    _cam?.dispose();
+    final cam = _cam;
+    final wasStreaming = _streaming;
+    _cam = null;
+    _loopRunning = false;
+    _streaming = false;
+    _loopGeneration += 1;
+    _stepDeadline?.cancel();
+    Future<void>(() async {
+      if (wasStreaming) {
+        try {
+          await cam?.stopImageStream();
+        } catch (_) {}
+      }
+      await cam?.dispose();
+    });
     super.dispose();
   }
+
+  CaptureLoopSettings get _loopSettings => CaptureLoopSettings(
+        minFrameInterval: _ctrl.config.captureFrameInterval,
+        maxAttempts: _ctrl.config.captureMaxAttempts,
+        timeout: _ctrl.config.captureTimeout,
+      );
 
   DataleonFlowController get _ctrl => widget.controller;
   Map<String, dynamic> get _dash => _ctrl.dashboardConfiguration;
@@ -181,6 +226,20 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     }
   }
 
+  /// Message « délai écoulé » propre à l'étape (recto, verso, passeport, selfie).
+  String get _timeoutMessageKey {
+    switch (_phase) {
+      case 'back':
+        return 'cameraCapture.captureTimeoutBack';
+      case 'face':
+        return 'cameraCapture.captureTimeoutFace';
+      default:
+        return _ctrl.documentType == 'passport'
+            ? 'cameraCapture.captureTimeoutPassport'
+            : 'cameraCapture.captureTimeoutFront';
+    }
+  }
+
   bool get _isCardDocument {
     final rawValue = _ctrl.selectedCustomDocument?['isCardDocument'];
     if (rawValue is bool) {
@@ -201,15 +260,28 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
 
   // ---- camera ----
 
+  /// Flux vidéo disponible (iOS, Android) : pas de son d'obturateur.
+  bool _canStream(CameraController cam) => !kIsWeb && cam.supportsImageStreaming();
+
+  ImageFormatGroup get _streamFormatGroup =>
+      defaultTargetPlatform == TargetPlatform.iOS
+          ? ImageFormatGroup.bgra8888
+          : ImageFormatGroup.yuv420;
+
   Future<void> _initCamera() async {
+    await _stopLoop();
+    if (!mounted) return;
     setState(() {
       _camReady = false;
       _apiStatus = null;
       _apiMessage = null;
+      _captureError = null;
     });
 
     try {
-      await _cam?.dispose();
+      final previous = _cam;
+      _cam = null;
+      await previous?.dispose();
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
 
@@ -220,12 +292,20 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         orElse: () => cameras.first,
       );
 
-      // Front (selfie/face) camera at 1280x720, back (documents) at 1920x1080.
-      final preset = _isFace ? ResolutionPreset.high : ResolutionPreset.veryHigh;
+      // Flux (iOS/Android) : 1280x720 pour les documents comme pour le selfie.
+      // Chaque image est convertie en JPEG sur l'appareil, et l'image acceptée
+      // est celle qui part en vérification (OCR, MRZ) : 720p garde la lecture
+      // fiable sans saturer les téléphones d'entrée de gamme. Photo (web) :
+      // 1920x1080 pour les documents, 1280x720 pour le selfie, comme avant.
+      final stream = !kIsWeb;
+      final preset = stream || _isFace
+          ? ResolutionPreset.high
+          : ResolutionPreset.veryHigh;
       final ctrl = CameraController(
         cam,
         preset,
         enableAudio: false,
+        imageFormatGroup: stream ? _streamFormatGroup : null,
       );
       await ctrl.initialize();
       if (!mounted) {
@@ -248,122 +328,297 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
   // ---- realtime API loop ----
 
   void _startLoop() {
-    _stopLoop();
+    final cam = _cam;
+    if (cam == null || !cam.value.isInitialized) return;
+    _loopGeneration += 1;
+    final generation = _loopGeneration;
     _loopRunning = true;
-    _runLoop();
-  }
-
-  Future<void> _runLoop() async {
-    while (_loopRunning && mounted) {
-      await _captureAndSend();
+    _sending = false;
+    // Nouvelle étape caméra (ou nouvel essai) : compteurs à zéro et 2 minutes
+    // (captureTimeout) qui partent maintenant, caméra prête.
+    _tracker = CaptureLoopTracker(_loopSettings, clock: widget.clock)..start();
+    _stepDeadline?.cancel();
+    _stepDeadline = Timer(_tracker.remaining, () {
+      if (_isCurrent(generation)) _failCapture(CaptureErrorCode.timeout);
+    });
+    if (_canStream(cam)) {
+      _startStream(cam, generation);
+    } else {
+      _runPhotoLoop(generation);
     }
   }
 
-  void _stopLoop() {
+  Future<void> _stopLoop() async {
     _loopRunning = false;
+    _loopGeneration += 1;
+    _stepDeadline?.cancel();
+    _stepDeadline = null;
+    final cam = _cam;
+    if (_streaming) {
+      _streaming = false;
+      try {
+        await cam?.stopImageStream();
+      } catch (_) {}
+    }
   }
 
-  Future<void> _captureAndSend() async {
-    if (_sending || !_camReady || _pendingConfirm || _greenDelay) return;
-    final cam = _cam;
-    if (cam == null || !cam.value.isInitialized) return;
+  bool _isCurrent(int generation) =>
+      mounted && _loopRunning && generation == _loopGeneration;
+
+  bool get _paused => _pendingConfirm || _greenDelay || _captureError != null;
+
+  Future<void> _startStream(CameraController cam, int generation) async {
+    _streaming = true;
+    try {
+      await cam.startImageStream(
+          (image) => _onStreamFrame(cam, image, generation));
+    } catch (_) {
+      // Flux refusé par l'appareil : repli sur les photos.
+      _streaming = false;
+      if (_isCurrent(generation)) _runPhotoLoop(generation);
+    }
+  }
+
+  void _onStreamFrame(CameraController cam, CameraImage image, int generation) {
+    if (!_isCurrent(generation) || _sending || _paused) return;
+    if (!_tracker.canSendNow) return;
+    final limit = _tracker.limitReached();
+    if (limit != null) {
+      _failCapture(limit);
+      return;
+    }
 
     _sending = true;
-    try {
-      final file = await cam.takePicture();
-      final bytes = await file.readAsBytes();
-      final base64Img = base64Encode(bytes);
+    _tracker.recordSend();
+    if (image.format.group == ImageFormatGroup.jpeg) {
+      final bytes = Uint8List.fromList(image.planes.first.bytes);
+      _sendFrame(generation, () async => bytes,
+          width: image.width, height: image.height);
+      return;
+    }
+    // Copie immédiate : le tampon natif est réutilisé après ce callback.
+    final frame = _captureFrameFrom(cam, image);
+    _sendFrame(generation, () => compute(encodeCaptureFrame, frame),
+        width: frame.outputWidth, height: frame.outputHeight);
+  }
 
-      // Get actual photo dimensions (decode once, cache for subsequent frames)
-      if (_photoW == null || _photoH == null) {
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        _photoW = frame.image.width.toDouble();
-        _photoH = frame.image.height.toDouble();
-        frame.image.dispose();
-        codec.dispose();
+  CaptureFrame _captureFrameFrom(CameraController cam, CameraImage image) {
+    final CaptureFrameFormat format;
+    switch (image.format.group) {
+      case ImageFormatGroup.bgra8888:
+        format = CaptureFrameFormat.bgra8888;
+        break;
+      case ImageFormatGroup.nv21:
+        format = CaptureFrameFormat.nv21;
+        break;
+      default:
+        format = CaptureFrameFormat.yuv420;
+    }
+    return CaptureFrame(
+      width: image.width,
+      height: image.height,
+      format: format,
+      planes: [
+        for (final p in image.planes)
+          CaptureFramePlane(
+            bytes: Uint8List.fromList(p.bytes),
+            bytesPerRow: p.bytesPerRow,
+            bytesPerPixel: p.bytesPerPixel,
+          ),
+      ],
+      rotation: captureFrameRotation(
+        isAndroid: defaultTargetPlatform == TargetPlatform.android,
+        sensorOrientation: cam.description.sensorOrientation,
+        width: image.width,
+        height: image.height,
+      ),
+    );
+  }
+
+  /// Repli sans flux (web) : une photo par tour, à la même cadence.
+  Future<void> _runPhotoLoop(int generation) async {
+    while (_isCurrent(generation)) {
+      if (_paused) return;
+      final wait = _tracker.delayBeforeNextSend();
+      if (wait > Duration.zero) {
+        await Future.delayed(wait);
+        continue;
       }
-      final double pw = _photoW!;
-      final double ph = _photoH!;
-
-      // Overlay as proportions — same ratios as the visual guide on screen.
-      // Applied directly to the actual photo dimensions so overlay matches image.
-      final double owRatio, ohRatio;
-      if (_isFace) {
-        owRatio = 0.65;
-        ohRatio = 0.45;
-      } else {
-        owRatio = 0.85;
-        ohRatio = 0.28;
+      final limit = _tracker.limitReached();
+      if (limit != null) {
+        _failCapture(limit);
+        return;
       }
-      final overlayW = (pw * owRatio).round();
-      final overlayH = (ph * ohRatio).round();
-      final overlayX = ((pw - overlayW) / 2).round();
-      final overlayY = ((ph - overlayH) / 2).round();
+      final cam = _cam;
+      if (cam == null || !cam.value.isInitialized) return;
 
-      final payload = <String, dynamic>{
-        'image': base64Img,
-        'step': _phase,
-        'document_type': _ctrl.documentType ?? 'id',
-        'document_country': (_ctrl.documentCountry ?? '').toUpperCase(),
-        'enabled_document_capture': _enabledDocumentCapture,
-        'language': _ctrl.languageCode,
-        'session_id': _sessionId,
-        'screen_w': pw.round(),
-        'screen_h': ph.round(),
-        'overlay_x': overlayX,
-        'overlay_y': overlayY,
-        'overlay_w': overlayW,
-        'overlay_h': overlayH,
-        // request_id / account_id / workspace_id / mode — centralized in the
-        // controller and appended to every capture (recto, verso, face/selfie).
-        ..._ctrl.captureRequestFields,
-      };
-
-      final data = await _ctrl.apiService.sendCaptureFrame(payload: payload);
-      if (!mounted) return;
-
-      final status = data['status'] as String?;
-      final message = data['message'] as String?;
-
-      setState(() {
-        _apiStatus = status;
-        _apiMessage = message;
+      _sending = true;
+      _tracker.recordSend();
+      await _sendFrame(generation, () async {
+        final file = await cam.takePicture();
+        return file.readAsBytes();
       });
+    }
+  }
 
-      if (status == 'ok') {
-        _stopLoop();
-        setState(() {
-          _greenDelay = true;
-          _capturedBytes = bytes;
-          _capturedFile = file;
-        });
+  /// Envoie une image à l'analyse temps réel et applique la réponse.
+  Future<void> _sendFrame(
+    int generation,
+    Future<Uint8List> Function() produce, {
+    int? width,
+    int? height,
+  }) async {
+    try {
+      final bytes = await produce();
+      if (!_isCurrent(generation)) return;
 
-        await Future.delayed(const Duration(milliseconds: 1500));
-        if (!mounted) return;
-        setState(() {
-          _greenDelay = false;
-          _pendingConfirm = true;
-        });
+      final double pw, ph;
+      if (width != null && height != null) {
+        pw = width.toDouble();
+        ph = height.toDouble();
+      } else {
+        // Photo : dimensions décodées une fois, identiques pour toute l'étape.
+        if (_photoW == null || _photoH == null) {
+          final codec = await ui.instantiateImageCodec(bytes);
+          final decoded = await codec.getNextFrame();
+          _photoW = decoded.image.width.toDouble();
+          _photoH = decoded.image.height.toDouble();
+          decoded.image.dispose();
+          codec.dispose();
+        }
+        pw = _photoW!;
+        ph = _photoH!;
       }
-    } catch (e) {
-      if (mounted) {
+
+      final data = await _ctrl.apiService
+          .sendCaptureFrame(payload: _framePayload(bytes, pw, ph));
+      if (!_isCurrent(generation)) return;
+      _applyOutcome(classifyCaptureResponse(data), bytes);
+    } catch (_) {
+      if (!_isCurrent(generation)) return;
+      final stop = _tracker.recordNetworkError();
+      if (stop != null) {
+        _failCapture(stop);
+      } else {
         setState(() {
           _apiStatus = 'ko';
-          _apiMessage = e.toString();
+          _apiMessage = _t('cameraCapture.networkError');
         });
       }
     } finally {
-      _sending = false;
+      if (generation == _loopGeneration) _sending = false;
     }
+  }
+
+  Map<String, dynamic> _framePayload(Uint8List bytes, double pw, double ph) {
+    // Overlay as proportions — same ratios as the visual guide on screen.
+    // Applied directly to the actual image dimensions so overlay matches image.
+    final double owRatio, ohRatio;
+    if (_isFace) {
+      owRatio = 0.65;
+      ohRatio = 0.45;
+    } else {
+      owRatio = 0.85;
+      ohRatio = 0.28;
+    }
+    final overlayW = (pw * owRatio).round();
+    final overlayH = (ph * ohRatio).round();
+    final overlayX = ((pw - overlayW) / 2).round();
+    final overlayY = ((ph - overlayH) / 2).round();
+
+    return <String, dynamic>{
+      'image': base64Encode(bytes),
+      'step': _phase,
+      'document_type': _ctrl.documentType ?? 'id',
+      'document_country': (_ctrl.documentCountry ?? '').toUpperCase(),
+      'enabled_document_capture': _enabledDocumentCapture,
+      'language': _ctrl.languageCode,
+      'session_id': _sessionId,
+      'screen_w': pw.round(),
+      'screen_h': ph.round(),
+      'overlay_x': overlayX,
+      'overlay_y': overlayY,
+      'overlay_w': overlayW,
+      'overlay_h': overlayH,
+      // request_id / account_id / workspace_id / mode — centralized in the
+      // controller and appended to every capture (recto, verso, face/selfie).
+      ..._ctrl.captureRequestFields,
+    };
+  }
+
+  void _applyOutcome(CaptureFrameOutcome outcome, Uint8List bytes) {
+    final stop = _tracker.recordOutcome(outcome);
+    if (outcome.action == CaptureFrameAction.accept) {
+      _acceptFrame(bytes);
+      return;
+    }
+    if (stop != null) {
+      _failCapture(stop, apiMessage: outcome.message);
+      return;
+    }
+    setState(() {
+      // Statut vide ou inconnu : lu comme `pending`. Sans message, le conseil
+      // déjà affiché reste.
+      _apiStatus = outcome.status;
+      if (outcome.message != null) _apiMessage = outcome.message;
+    });
+  }
+
+  Future<void> _acceptFrame(Uint8List bytes) async {
+    await _stopLoop();
+    if (!mounted) return;
+    setState(() {
+      _apiStatus = 'ok';
+      _greenDelay = true;
+      _capturedBytes = bytes;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    setState(() {
+      _greenDelay = false;
+      _pendingConfirm = true;
+    });
+  }
+
+  /// Arrêt sans succès : feuille d'erreur avec « Réessayer », et `onResult`
+  /// reçoit `DataleonStatus.error` avec [code].
+  void _failCapture(String code, {String? apiMessage}) {
+    _stopLoop();
+    if (!mounted) return;
+    final String message;
+    if (code == CaptureErrorCode.tooManyAttempts && apiMessage != null) {
+      message = apiMessage.replaceAll(RegExp(r'</?k>'), '');
+    } else if (code == CaptureErrorCode.timeout) {
+      message = _t(_timeoutMessageKey);
+    } else {
+      message = _t('cameraCapture.captureFailed');
+    }
+    setState(() {
+      _captureError = message;
+      _apiStatus = null;
+    });
+    _ctrl.reportCaptureError(code);
+  }
+
+  void _handleCaptureRetry() {
+    if (!mounted) return;
+    setState(() {
+      _captureError = null;
+      _apiStatus = null;
+      _apiMessage = null;
+    });
+    // Nouvelle session : le serveur a pu fermer l'étape de l'ancienne.
+    _sessionId = DateTime.now().microsecondsSinceEpoch.toString();
+    _ctrl.resumeAfterCaptureError();
+    _startLoop();
   }
 
   // ---- confirmation flow ----
 
   Future<void> _handleConfirm() async {
     final bytes = _capturedBytes;
-    final file = _capturedFile;
-    if (bytes == null || file == null || _submitting) return;
+    if (bytes == null || _submitting) return;
 
     setState(() {
       _submitting = true;
@@ -488,7 +743,6 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
         _phaseIndex += 1;
         _pendingConfirm = false;
         _capturedBytes = null;
-        _capturedFile = null;
         _submitting = false;
         _confirmStatus = null;
         _confirmMessage = null;
@@ -516,7 +770,6 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     setState(() {
       _pendingConfirm = false;
       _capturedBytes = null;
-      _capturedFile = null;
       _confirmStatus = null;
       _confirmMessage = null;
       _confirmPercent = null;
@@ -847,6 +1100,24 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
               }),
             ),
           ),
+
+          // Capture arrêtée sans succès (limite atteinte, étape fermée par le
+          // serveur, erreurs répétées) : même feuille que la confirmation.
+          if (_captureError != null) ...[
+            const Positioned.fill(
+              child: ColoredBox(color: Color(0x59000000)),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildErrorSheet(
+                message: _captureError!,
+                buttonLabel: _t('cameraCapture.captureRetry'),
+                onPressed: _handleCaptureRetry,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -955,7 +1226,11 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildErrorSheet(),
+            child: _buildErrorSheet(
+              message: _confirmError!,
+              buttonLabel: _t('cameraCapture.retake'),
+              onPressed: _handleRetake,
+            ),
           ),
         ],
       ],
@@ -1040,14 +1315,18 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
     );
   }
 
-  /// Feuille d'erreur blanche qui monte du bas et recouvre la confirmation,
-  /// à l'identique de la webview (icône dans un rond rouge pâle, texte sombre,
-  /// bouton « Reprendre » aux couleurs du workspace).
-  Widget _buildErrorSheet() {
+  /// Feuille d'erreur blanche qui monte du bas et recouvre l'écran, à
+  /// l'identique de la webview (icône dans un rond rouge pâle, texte sombre,
+  /// bouton aux couleurs du workspace).
+  Widget _buildErrorSheet({
+    required String message,
+    required String buttonLabel,
+    required VoidCallback onPressed,
+  }) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return TweenAnimationBuilder<double>(
-      key: ValueKey(_confirmError),
+      key: ValueKey(message),
       tween: Tween(begin: 1, end: 0),
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeOutCubic,
@@ -1087,7 +1366,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              _confirmError!,
+              message,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF111827), // gray-900
@@ -1100,7 +1379,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _handleRetake,
+                onPressed: onPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _btnColor,
                   foregroundColor: _btnTextColor,
@@ -1110,7 +1389,7 @@ class _CameraCaptureStepPageState extends State<CameraCaptureStepPage> {
                   ),
                 ),
                 child: Text(
-                  _t('cameraCapture.retake'),
+                  buttonLabel,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
